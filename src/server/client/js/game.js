@@ -9194,101 +9194,240 @@ return jQuery;
 'use strict';
 
 var $ = require("jquery"),
+	CONST = require("./modules/const"),
 	State = require("./modules/state"),
 	state = new State(),
-
-	preload = require("./modules/phases/preload")( state ),
-	create = require("./modules/phases/create")( state ),
-	update = require("./modules/phases/update")( state ),
-	render = require("./modules/phases/render")( state );
+	LevelManager = require("./modules/level-manager"),
+	levelManager = new LevelManager( state );
 
 $( function() {
 
 state.Phaser = Phaser;
 
 state.game = new Phaser.Game(
-	800,
-	600,
+
+	CONST.SCREEN_SIZE_X,
+	CONST.SCREEN_SIZE_Y,
 	Phaser.CANVAS,
-	'gameContainer',
+	CONST.HTML_CONTAINER,
+
 	{
-		preload: preload,
-		create: create,
-		update: update,
-		render: render
+		preload: function(){ levelManager.preload(); },
+		create: function(){ levelManager.create(); },
+		update: function(){ levelManager.update(); },
+		render: function(){ levelManager.render(); }
 	}
+
 );
 
 } );
-},{"./modules/phases/create":3,"./modules/phases/preload":4,"./modules/phases/render":5,"./modules/phases/update":6,"./modules/state":7,"jquery":1}],3:[function(require,module,exports){
+},{"./modules/const":4,"./modules/level-manager":5,"./modules/state":7,"jquery":1}],3:[function(require,module,exports){
 'use strict';
 
-module.exports = function(state) {
+var CONST = require("./const");
 
-	return function() {
-		// var game = state.game,
-		//	Phaser = state.Phaser;
+function Cannon(Phaser, game, position) {
+	var self = this;
 
-		//  This will run in Canvas mode, so let's gain a little speed and display
-		// game.renderer.clearBeforeRender = false;
-		// game.renderer.roundPixels = true;
+	self.Phaser = Phaser;
+	self.game = game;
+	self.position = position;
 
-		// game.physics.startSystem( Phaser.Physics.ARCADE );
+	// base
+	var baseSprite = game.add.sprite( position.x, position.y, "cannon-base" );
+	game.physics.enable( baseSprite, Phaser.Physics.ARCADE );
+	baseSprite.anchor.setTo( 0.5 );
+	baseSprite.body.setSize( 10, 10, 0, 0 );
+	baseSprite.body.drag.set( 100 );
+	// reverses both images (base and gun)
+	baseSprite.scale.x *= -1; // temp code - remove with real images
 
-		//  background
-		// game.add.tileSprite( 0, 0, game.width, game.height, 'space' );
+	// gun
+	var gunSprite = game.add.sprite( 0, 0, "cannon-gun" );
+	game.physics.enable( gunSprite, Phaser.Physics.ARCADE );
+	gunSprite.anchor.setTo( 0.05, 0.5 );
 
-		//  Game input
+	baseSprite.addChild( gunSprite );
 
-		// create all objects up the tree
-	};
+	self.baseSprite = baseSprite;
+	self.gunSprite = gunSprite;
+}
+
+Cannon.prototype = {
+
+	Phaser: null,
+	game: null,
+
+	position: null,
+	baseSprite: null,
+	gunSprite: null,
+
+	preload: function(Phaser, game) {
+		game.load.image( "cannon-base", "assets/cannon-base.gif" );
+		game.load.image( "cannon-gun", "assets/cannon-gun.gif" );
+	},
+
+	update: function() {},
+
+	render: function() {},
 
 };
-},{}],4:[function(require,module,exports){
+
+module.exports = Cannon;
+},{"./const":4}],4:[function(require,module,exports){
 'use strict';
 
-module.exports = function(state) {
+module.exports = {
 
-	return function() {
-		// var Phaser = state.Phaser,
-		//	game = state.game;
+	HTML_CONTAINER: 'gameContainer',
 
-		// game.load.image( 'space', 'assets/deep-space.jpg' );
-	};
+	SCREEN_SIZE_X: 900,
+	SCREEN_SIZE_Y: 675
 
 };
 },{}],5:[function(require,module,exports){
 'use strict';
 
-module.exports = function(state) {
+var CONST = require("./const"),
+	Player = require("./player"),
+	Cannon = require("./cannon");
 
-	return function() {
-		// var game = state.game,
-		//	Phaser = state.Phaser;
-	};
+function LevelManager(state) {
+	var self = this;
+
+	self.state = state;
+}
+
+LevelManager.prototype = {
+
+	state: null,
+	level: 1,
+
+	preload: function() {
+		var self = this,
+			state = self.state,
+			Phaser = state.Phaser,
+			game = state.game;
+
+		Player.prototype.preload( Phaser, game );
+		Cannon.prototype.preload( Phaser, game );
+
+		// preload level
+		game.load.tilemap( "tilemap", "assets/levels/tilemap.json", null, Phaser.Tilemap.TILED_JSON );
+		game.load.image( "tiles", "assets/levels/tileset.png" );
+	},
+
+	create: function() {
+		var self = this,
+			state = self.state,
+			game = state.game,
+			Phaser = state.Phaser;
+
+		// This will run in Canvas mode, so let's gain a little speed and display
+		game.renderer.clearBeforeRender = false;
+		game.renderer.roundPixels = true;
+
+		game.physics.startSystem( Phaser.Physics.ARCADE );
+
+		var map = game.add.tilemap( 'tilemap' );
+		map.addTilesetImage('tile-set', 'tiles');
+		state.map = map;
+
+		self.createLevel();
+
+		//  This resizes the game world to match the layer dimensions
+		// layer.resizeWorld();
+	},
+
+	update: function() {
+		var self = this,
+			state = self.state;
+
+		state.objects.forEach( function(element) {
+			element.update();
+		} );
+	},
+
+	render: function() {
+		var self = this,
+			state = self.state;
+
+		state.objects.forEach( function(element) {
+			element.render();
+		} );
+	},
+
+	createLevel: function() {
+		var self = this,
+			state = self.state,
+			Phaser = state.Phaser,
+			game = state.game,
+			level = self.level,
+			map = state.map;
+
+		state.objects.push( new Player( Phaser, game ) );
+		state.objects.push( new Cannon( Phaser, game, { x: 300, y: 300 } ) );
+
+		var layer = map.createLayer( level + "-background" );
+
+		state.layer = layer;
+	}
 
 };
-},{}],6:[function(require,module,exports){
+
+module.exports = LevelManager;
+},{"./cannon":3,"./const":4,"./player":6}],6:[function(require,module,exports){
 'use strict';
 
-module.exports = function(state) {
+var CONST = require("./const");
 
-	return function() {
-		// var game = state.game,
-		//	Phaser = state.Phaser;
-		// propagate update
-	};
+function Player(Phaser, game) {
+	var self = this;
+
+	self.Phaser = Phaser;
+	self.game = game;
+
+	var sprite = game.add.sprite( 300, 300, "player" );
+	game.physics.enable( sprite, Phaser.Physics.ARCADE );
+	sprite.anchor.setTo( 0.5 );
+	sprite.body.drag.set( 100 );
+
+	self.sprite = sprite;
+}
+
+Player.prototype = {
+
+	Phaser: null,
+	game: null,
+
+	sprite: null,
+
+	preload: function(Phaser, game) {
+		game.load.image( "player", "assets/player.png" );
+	},
+
+	update: function() {},
+
+	render: function() {},
 
 };
-},{}],7:[function(require,module,exports){
+
+module.exports = Player;
+},{"./const":4}],7:[function(require,module,exports){
 'use strict';
 
-function State() {}
+function State() {
+	var self = this;
+
+	self.objects = [];
+}
 
 State.prototype = {
 
 	Phaser: null,
-	game: null
+	game: null,
+
+	objects: null
 
 };
 

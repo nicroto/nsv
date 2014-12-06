@@ -1,11 +1,17 @@
 'use strict';
 
-function State() {}
+function State() {
+	var self = this;
+
+	self.objects = [];
+}
 
 State.prototype = {
 
 	Phaser: null,
-	game: null
+	game: null,
+
+	objects: null
 
 };
 
