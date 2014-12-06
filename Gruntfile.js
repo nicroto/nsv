@@ -1,17 +1,22 @@
 'use strict';
 
+var pathUtils = require('path'),
+	PROJECT_DIR_PATH = pathUtils.resolve( __dirname ),
+	UNLIMITED_SIZE = 1000000;
+
 module.exports = function(grunt) {
 
 	grunt.initConfig({
 		pkg: grunt.file.readJSON('package.json'),
 
 		clean: {
-			all: [
+			dev: [
 				'src/server/client/assets',
 				'src/server/client/css',
 
 				'src/server/client/js/game.js'
-			]
+			],
+			build: ['build/']
 		},
 		jshint: {
 			all: ['src/**/*.js', 'test/**/*.js', 'Gruntfile.js', '!src/server/client/**/*.js'],
@@ -92,7 +97,21 @@ module.exports = function(grunt) {
 					port: 5000
 				}
 			}
+		},
+		shell: {
+			update_website: {
+				command: function(version) {
+					return "./bin/update-website.sh";
+				},
+				options: {
+					execOptions: {
+						cwd: PROJECT_DIR_PATH,
+						maxBuffer: UNLIMITED_SIZE
+					}
+				}
+			}
 		}
+
 	});
 
 	// task loading
@@ -104,20 +123,22 @@ module.exports = function(grunt) {
 	grunt.loadNpmTasks('grunt-contrib-copy');
 	grunt.loadNpmTasks('grunt-contrib-watch');
 	grunt.loadNpmTasks('grunt-express-server');
+	grunt.loadNpmTasks('grunt-shell');
 
 
 	// run lint and tests
-	grunt.registerTask('default', ['clean', 'jshint:all', 'simplemocha']);
+	grunt.registerTask('default', ['clean:dev', 'jshint:all', 'simplemocha']);
 
 	// start develop
-	grunt.registerTask('devRebuild', ['clean', 'browserify:game_debug', 'stylus', 'copy']);
+	grunt.registerTask('devRebuild', ['clean:dev', 'browserify:game_debug', 'stylus', 'copy']);
 	grunt.registerTask('dev', ['devRebuild', 'express', 'watch']);
 
-	// build for test & commit (output is minified)
-	grunt.registerTask('build', ['clean', 'browserify:game', 'stylus', 'copy']);
+	// build for website (output is minified)
+	grunt.registerTask('webRebuild', ['clean:dev', 'browserify:game', 'stylus', 'copy']);
+	grunt.registerTask('web', ['clean:build', 'webRebuild', 'shell:update_website', 'clean:build', 'devRebuild']);
 
 	// shorthands
 	grunt.registerTask('d', ['dev']);
 	grunt.registerTask('h', ['jshint:all']);
-	grunt.registerTask('c', ['clean']);
+	grunt.registerTask('c', ['clean:dev', 'clean:build']);
 };
