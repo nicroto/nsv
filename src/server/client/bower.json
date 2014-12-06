@@ -1,0 +1,21 @@
+{
+  "name": "nsv-website",
+  "version": "0.1.0",
+  "authors": [
+    "nicroto <nikolay@tsenkov.net>"
+  ],
+  "description": "The website of the NSV game.",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "jquery": "~2.1.1",
+    "bootstrap": "~3.3.1",
+    "phaser": "~2.1.3"
+  }
+}
