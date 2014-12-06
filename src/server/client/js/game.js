@@ -9191,15 +9191,106 @@ return jQuery;
 }));
 
 },{}],2:[function(require,module,exports){
-"use strict";var $=require("jquery"),State=require("./modules/state"),state=new State,preload=require("./modules/phases/preload")(state),create=require("./modules/phases/create")(state),update=require("./modules/phases/update")(state),render=require("./modules/phases/render")(state);$(function(){state.Phaser=Phaser,state.game=new Phaser.Game(800,600,Phaser.CANVAS,"gameContainer",{preload:preload,create:create,update:update,render:render})});
+'use strict';
+
+var $ = require("jquery"),
+	State = require("./modules/state"),
+	state = new State(),
+
+	preload = require("./modules/phases/preload")( state ),
+	create = require("./modules/phases/create")( state ),
+	update = require("./modules/phases/update")( state ),
+	render = require("./modules/phases/render")( state );
+
+$( function() {
+
+state.Phaser = Phaser;
+
+state.game = new Phaser.Game(
+	800,
+	600,
+	Phaser.CANVAS,
+	'gameContainer',
+	{
+		preload: preload,
+		create: create,
+		update: update,
+		render: render
+	}
+);
+
+} );
 },{"./modules/phases/create":3,"./modules/phases/preload":4,"./modules/phases/render":5,"./modules/phases/update":6,"./modules/state":7,"jquery":1}],3:[function(require,module,exports){
-"use strict";module.exports=function(){return function(){}};
+'use strict';
+
+module.exports = function(state) {
+
+	return function() {
+		// var game = state.game,
+		//	Phaser = state.Phaser;
+
+		//  This will run in Canvas mode, so let's gain a little speed and display
+		// game.renderer.clearBeforeRender = false;
+		// game.renderer.roundPixels = true;
+
+		// game.physics.startSystem( Phaser.Physics.ARCADE );
+
+		//  background
+		// game.add.tileSprite( 0, 0, game.width, game.height, 'space' );
+
+		//  Game input
+
+		// create all objects up the tree
+	};
+
+};
 },{}],4:[function(require,module,exports){
-module.exports=require(3)
-},{"/Users/tsenkov/repos/nsv/src/game/modules/phases/create.js":3}],5:[function(require,module,exports){
-module.exports=require(3)
-},{"/Users/tsenkov/repos/nsv/src/game/modules/phases/create.js":3}],6:[function(require,module,exports){
-module.exports=require(3)
-},{"/Users/tsenkov/repos/nsv/src/game/modules/phases/create.js":3}],7:[function(require,module,exports){
-"use strict";function State(){}State.prototype={Phaser:null,game:null},module.exports=State;
+'use strict';
+
+module.exports = function(state) {
+
+	return function() {
+		// var Phaser = state.Phaser,
+		//	game = state.game;
+
+		// game.load.image( 'space', 'assets/deep-space.jpg' );
+	};
+
+};
+},{}],5:[function(require,module,exports){
+'use strict';
+
+module.exports = function(state) {
+
+	return function() {
+		// var game = state.game,
+		//	Phaser = state.Phaser;
+	};
+
+};
+},{}],6:[function(require,module,exports){
+'use strict';
+
+module.exports = function(state) {
+
+	return function() {
+		// var game = state.game,
+		//	Phaser = state.Phaser;
+		// propagate update
+	};
+
+};
+},{}],7:[function(require,module,exports){
+'use strict';
+
+function State() {}
+
+State.prototype = {
+
+	Phaser: null,
+	game: null
+
+};
+
+module.exports = State;
 },{}]},{},[2]);

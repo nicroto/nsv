@@ -127,7 +127,7 @@ module.exports = function(grunt) {
 
 
 	// run lint and tests
-	grunt.registerTask('default', ['clean:dev', 'jshint:all', 'simplemocha']);
+	grunt.registerTask('default', ['c', 'jshint:all', 'simplemocha']);
 
 	// start develop
 	grunt.registerTask('devRebuild', ['clean:dev', 'browserify:game_debug', 'stylus', 'copy']);
