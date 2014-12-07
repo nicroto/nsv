@@ -1,6 +1,7 @@
 'use strict';
 
 var pathUtils = require('path'),
+	fs = require('fs'),
 	PROJECT_DIR_PATH = pathUtils.resolve( __dirname ),
 	UNLIMITED_SIZE = 1000000;
 
@@ -125,16 +126,56 @@ module.exports = function(grunt) {
 	grunt.loadNpmTasks('grunt-express-server');
 	grunt.loadNpmTasks('grunt-shell');
 
+	// custom tasks
+	grunt.task.registerTask( "tilemapEdit", "copy the rotation prop of objects", function() {
+		var path = pathUtils.resolve( __dirname, "src", "game", "assets", "levels", "tilemap.json" );
+		if ( fs.existsSync( path ) ) {
+			var jsonText = fs.readFileSync( path, "utf-8" );
+			if ( jsonText ) {
+				console.log( "tilemap.json file successfully read." );
+				try {
+					var json = JSON.parse( jsonText ),
+						layers = json.layers;
+
+					console.log( "tilemap.json file successfully parsed." );
+					if ( layers && layers.length ) {
+						layers.forEach( function(layer) {
+							if ( layer.type === "objectgroup" ) {
+								var objects = layer.objects;
+								if ( objects && objects.length ) {
+									objects.forEach( function(object) {
+										if ( object.rotation !== undefined ) {
+											if ( !object.properties ) {
+												object.properties = {};
+											}
+											object.properties.rotation = object.rotation;
+										}
+									} );
+								}
+							}
+						} );
+						var newJsonText = JSON.stringify( json );
+						fs.writeFileSync( path, newJsonText );
+						console.log( "tilemap.json file successfully updated with rotation props." );
+					}
+				} catch(exception) {
+					console.error( "Error: tilemap.json isn't a valid JSON" );
+				}
+			}
+		} else {
+			console.error( "Error: tilemap.json file doesn't exist" );
+		}
+	} );
 
 	// run lint and tests
 	grunt.registerTask('default', ['c', 'jshint:all', 'simplemocha']);
 
 	// start develop
-	grunt.registerTask('devRebuild', ['clean:dev', 'browserify:game_debug', 'stylus', 'copy']);
+	grunt.registerTask('devRebuild', ['clean:dev', 'tilemapEdit', 'browserify:game_debug', 'stylus', 'copy']);
 	grunt.registerTask('dev', ['devRebuild', 'express', 'watch']);
 
 	// build for website (output is minified)
-	grunt.registerTask('webRebuild', ['clean:dev', 'browserify:game', 'stylus', 'copy']);
+	grunt.registerTask('webRebuild', ['clean:dev', 'tilemapEdit', 'browserify:game', 'stylus', 'copy']);
 	grunt.registerTask('web', ['clean:build', 'webRebuild', 'shell:update_website', 'clean:build', 'devRebuild']);
 
 	// shorthands
