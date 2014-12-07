@@ -35,11 +35,15 @@
 </data>
  </layer>
  <objectgroup name="1-objects">
-  <object name="startPoint" x="776" y="600" width="48" height="49"/>
-  <object name="cannon" x="25" y="399.5" width="49" height="49"/>
-  <object name="cannon" x="475" y="275.5" width="49" height="48"/>
-  <object name="cannon" x="675" y="125.5" width="49" height="49"/>
+  <object name="start" x="770.941" y="623.224" width="48" height="49" rotation="-46.4971">
+   <properties>
+    <property name="rotation" value="-46.50"/>
+   </properties>
+  </object>
+  <object name="cannon" x="46.566" y="386.677" width="49" height="49" rotation="-311.453"/>
+  <object name="cannon" x="481.277" y="268.763" width="49" height="48" rotation="17.52"/>
+  <object name="cannon" x="670.522" y="150.891" width="49" height="49" rotation="-49.9788"/>
   <object name="cannon" x="325" y="125.5" width="49" height="48"/>
-  <object name="exit" x="25" y="24.5" width="49" height="49"/>
+  <object name="target" x="25" y="24.5" width="49" height="49"/>
  </objectgroup>
 </map>

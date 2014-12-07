@@ -2,7 +2,7 @@
 
 var CONST = require("./const");
 
-function Cannon(Phaser, game, position) {
+function Cannon(Phaser, game, position, player) {
 	var self = this;
 
 	self.Phaser = Phaser;
@@ -12,6 +12,7 @@ function Cannon(Phaser, game, position) {
 	// base
 	var baseSprite = game.add.sprite( position.x, position.y, "cannon-base" );
 	game.physics.enable( baseSprite, Phaser.Physics.ARCADE );
+	baseSprite.angle = position.angle;
 	baseSprite.anchor.setTo( 0.5 );
 	baseSprite.body.setSize( 10, 10, 0, 0 );
 	baseSprite.body.drag.set( 100 );
@@ -27,6 +28,10 @@ function Cannon(Phaser, game, position) {
 
 	self.baseSprite = baseSprite;
 	self.gunSprite = gunSprite;
+
+	if ( player ) {
+		// TODO:
+	}
 }
 
 Cannon.prototype = {

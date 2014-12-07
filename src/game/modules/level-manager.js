@@ -2,7 +2,8 @@
 
 var CONST = require("./const"),
 	Player = require("./player"),
-	Cannon = require("./cannon");
+	Cannon = require("./cannon"),
+	Target = require("./target");
 
 function LevelManager(state) {
 	var self = this;
@@ -23,6 +24,7 @@ LevelManager.prototype = {
 
 		Player.prototype.preload( Phaser, game );
 		Cannon.prototype.preload( Phaser, game );
+		Target.prototype.preload( Phaser, game );
 
 		// preload level
 		game.load.tilemap( "tilemap", "assets/levels/tilemap.json", null, Phaser.Tilemap.TILED_JSON );
@@ -72,17 +74,65 @@ LevelManager.prototype = {
 	createLevel: function() {
 		var self = this,
 			state = self.state,
+			level = self.level,
+			map = state.map,
+			backgroundLayerName = level + "-background",
+			objectsLayerName = level + "-objects";
+
+		var layer = map.createLayer( backgroundLayerName );
+		state.layer = layer;
+
+		var levelObjects = map.objects[ objectsLayerName ];
+
+		levelObjects.forEach( function( element ) {
+			var  position = {
+				x: element.x + Math.ceil( element.width / 2 ),
+				y: element.y + Math.ceil( element.height / 2 ),
+				angle: element.properties.rotation
+			};
+			switch( element.name ) {
+				case "start":
+					self.createStartPoint( position );
+					break;
+				case "cannon":
+					self.createCannon( position );
+					break;
+				case "target":
+					self.createTarget( position );
+					break;
+				default:
+					break;
+			}
+		} );
+	},
+
+	createStartPoint: function(position) {
+		var self = this,
+			state = self.state,
 			Phaser = state.Phaser,
 			game = state.game,
-			level = self.level,
-			map = state.map;
+			player = new Player( Phaser, game, position );
 
-		state.objects.push( new Player( Phaser, game ) );
-		state.objects.push( new Cannon( Phaser, game, { x: 300, y: 300 } ) );
+		state.objects.push( player );
+		state.objects.push( new Cannon( Phaser, game, position, player ) );
+	},
 
-		var layer = map.createLayer( level + "-background" );
+	createCannon: function(position) {
+		var self = this,
+			state = self.state,
+			Phaser = state.Phaser,
+			game = state.game;
 
-		state.layer = layer;
+		state.objects.push( new Cannon( Phaser, game, position ) );
+	},
+
+	createTarget: function(position) {
+		var self = this,
+			state = self.state,
+			Phaser = state.Phaser,
+			game = state.game;
+
+		state.objects.push( new Target( Phaser, game, position ) );
 	}
 
 };
