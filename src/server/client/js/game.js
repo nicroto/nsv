@@ -9294,6 +9294,7 @@ module.exports = {
 'use strict';
 
 var CONST = require("./const"),
+	utils = require("./utils"),
 	Player = require("./player"),
 	Cannon = require("./cannon"),
 	Target = require("./target");
@@ -9378,11 +9379,16 @@ LevelManager.prototype = {
 		var levelObjects = map.objects[ objectsLayerName ];
 
 		levelObjects.forEach( function( element ) {
-			var  position = {
-				x: element.x + Math.ceil( element.width / 2 ),
-				y: element.y + Math.ceil( element.height / 2 ),
-				angle: element.properties.rotation
-			};
+			var position = utils.getMidPoint(
+				element.x,
+				element.y,
+				element.width,
+				element.height,
+				element.properties.rotation
+			);
+
+			position.angle = element.properties.rotation;
+
 			switch( element.name ) {
 				case "start":
 					self.createStartPoint( position );
@@ -9431,7 +9437,7 @@ LevelManager.prototype = {
 };
 
 module.exports = LevelManager;
-},{"./cannon":3,"./const":4,"./player":6,"./target":8}],6:[function(require,module,exports){
+},{"./cannon":3,"./const":4,"./player":6,"./target":8,"./utils":9}],6:[function(require,module,exports){
 'use strict';
 
 var CONST = require("./const");
@@ -9529,4 +9535,25 @@ Target.prototype = {
 };
 
 module.exports = Target;
-},{"./const":4}]},{},[2]);
+},{"./const":4}],9:[function(require,module,exports){
+'use strict';
+
+var utils = {
+
+	getMidPoint: function(x, y, width, height, angleInDegrees) {
+		var angleInRadians = angleInDegrees * Math.PI / 180,
+			cosa = Math.cos( angleInRadians ),
+			sina = Math.sin( angleInRadians ),
+			wp = width / 2,
+			hp = height / 2;
+
+		return {
+			x: ( x + wp * cosa - hp * sina ),
+			y: ( y + wp * sina + hp * cosa )
+		};
+	}
+
+};
+
+module.exports = utils;
+},{}]},{},[2]);

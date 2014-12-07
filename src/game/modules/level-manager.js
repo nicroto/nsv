@@ -1,6 +1,7 @@
 'use strict';
 
 var CONST = require("./const"),
+	utils = require("./utils"),
 	Player = require("./player"),
 	Cannon = require("./cannon"),
 	Target = require("./target");
@@ -85,11 +86,16 @@ LevelManager.prototype = {
 		var levelObjects = map.objects[ objectsLayerName ];
 
 		levelObjects.forEach( function( element ) {
-			var  position = {
-				x: element.x + Math.ceil( element.width / 2 ),
-				y: element.y + Math.ceil( element.height / 2 ),
-				angle: element.properties.rotation
-			};
+			var position = utils.getMidPoint(
+				element.x,
+				element.y,
+				element.width,
+				element.height,
+				element.properties.rotation
+			);
+
+			position.angle = element.properties.rotation;
+
 			switch( element.name ) {
 				case "start":
 					self.createStartPoint( position );
