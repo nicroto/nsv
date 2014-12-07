@@ -101,7 +101,7 @@ module.exports = function(grunt) {
 		},
 		shell: {
 			update_website: {
-				command: function(version) {
+				command: function() {
 					return "./bin/update-website.sh";
 				},
 				options: {

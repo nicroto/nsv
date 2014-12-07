@@ -1,7 +1,5 @@
 'use strict';
 
-var CONST = require("./const");
-
 function Target(Phaser, game, position) {
 	var self = this;
 

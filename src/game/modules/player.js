@@ -1,12 +1,8 @@
 'use strict';
 
-var CONST = require("./const");
-
 function Player(Phaser, game, position) {
 	var self = this;
 
-	self.Phaser = Phaser;
-	self.game = game;
 	self.position = position;
 
 	var sprite = game.add.sprite( position.x, position.y, "player" );
@@ -19,9 +15,6 @@ function Player(Phaser, game, position) {
 }
 
 Player.prototype = {
-
-	Phaser: null,
-	game: null,
 
 	position: null,
 	sprite: null,

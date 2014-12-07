@@ -9224,46 +9224,36 @@ state.game = new Phaser.Game(
 },{"./modules/const":4,"./modules/level-manager":5,"./modules/state":7,"jquery":1}],3:[function(require,module,exports){
 'use strict';
 
-var CONST = require("./const");
-
-function Cannon(Phaser, game, position, player) {
+function Cannon(Phaser, game, position, index) {
 	var self = this;
 
-	self.Phaser = Phaser;
-	self.game = game;
 	self.position = position;
+	self.index = index;
 
 	// base
 	var baseSprite = game.add.sprite( position.x, position.y, "cannon-base" );
 	game.physics.enable( baseSprite, Phaser.Physics.ARCADE );
 	baseSprite.angle = position.angle;
 	baseSprite.anchor.setTo( 0.5 );
-	baseSprite.body.setSize( 10, 10, 0, 0 );
-	baseSprite.body.drag.set( 100 );
-	// reverses both images (base and gun)
-	baseSprite.scale.x *= -1; // temp code - remove with real images
+	baseSprite.body.immovable = true;
 
 	// gun
-	var gunSprite = game.add.sprite( 0, 0, "cannon-gun" );
+	var gunSprite = game.add.sprite( position.x, position.y, "cannon-gun" );
 	game.physics.enable( gunSprite, Phaser.Physics.ARCADE );
+	gunSprite.angle = position.angle - 90;
 	gunSprite.anchor.setTo( 0.05, 0.5 );
 
-	baseSprite.addChild( gunSprite );
+	// baseSprite.addChild( gunSprite );
 
 	self.baseSprite = baseSprite;
 	self.gunSprite = gunSprite;
-
-	if ( player ) {
-		// TODO:
-	}
 }
 
 Cannon.prototype = {
 
-	Phaser: null,
-	game: null,
-
 	position: null,
+	index: -1,
+
 	baseSprite: null,
 	gunSprite: null,
 
@@ -9272,14 +9262,22 @@ Cannon.prototype = {
 		game.load.image( "cannon-gun", "assets/cannon-gun.gif" );
 	},
 
-	update: function() {},
+	update: function(state) {
+		var self = this,
+			game = state.game,
+			gunSprite = self.gunSprite;
+
+		if ( state.selectedCannon === self.index ) {
+			gunSprite.rotation = game.physics.arcade.angleToPointer( gunSprite );
+		}
+	},
 
 	render: function() {},
 
 };
 
 module.exports = Cannon;
-},{"./const":4}],4:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
 'use strict';
 
 module.exports = {
@@ -9293,8 +9291,7 @@ module.exports = {
 },{}],5:[function(require,module,exports){
 'use strict';
 
-var CONST = require("./const"),
-	utils = require("./utils"),
+var utils = require("./utils"),
 	Player = require("./player"),
 	Cannon = require("./cannon"),
 	Target = require("./target");
@@ -9308,7 +9305,6 @@ function LevelManager(state) {
 LevelManager.prototype = {
 
 	state: null,
-	level: 1,
 
 	preload: function() {
 		var self = this,
@@ -9352,7 +9348,7 @@ LevelManager.prototype = {
 			state = self.state;
 
 		state.objects.forEach( function(element) {
-			element.update();
+			element.update( state );
 		} );
 	},
 
@@ -9361,14 +9357,14 @@ LevelManager.prototype = {
 			state = self.state;
 
 		state.objects.forEach( function(element) {
-			element.render();
+			element.render( state );
 		} );
 	},
 
 	createLevel: function() {
 		var self = this,
 			state = self.state,
-			level = self.level,
+			level = state.level,
 			map = state.map,
 			backgroundLayerName = level + "-background",
 			objectsLayerName = level + "-objects";
@@ -9379,22 +9375,29 @@ LevelManager.prototype = {
 		var levelObjects = map.objects[ objectsLayerName ];
 
 		levelObjects.forEach( function( element ) {
-			var position = utils.getMidPoint(
-				element.x,
-				element.y,
-				element.width,
-				element.height,
-				element.properties.rotation
-			);
+			var customProps = element.properties,
+				position = utils.getMidPoint(
+					element.x,
+					element.y,
+					element.width,
+					element.height,
+					customProps.rotation
+				);
 
-			position.angle = element.properties.rotation;
+			position.angle = customProps.rotation;
 
 			switch( element.name ) {
 				case "start":
 					self.createStartPoint( position );
 					break;
 				case "cannon":
-					self.createCannon( position );
+					var index;
+					try {
+						index = JSON.parse( customProps.index );
+					} catch(exception) {
+						throw new Error( "Error: can't parse cannonObject.properties.index: " + exception.message );
+					}
+					self.createCannon( position, index );
 					break;
 				case "target":
 					self.createTarget( position );
@@ -9403,6 +9406,8 @@ LevelManager.prototype = {
 					break;
 			}
 		} );
+
+		self.verifyLevelIsLoadedCorrectly();
 	},
 
 	createStartPoint: function(position) {
@@ -9413,40 +9418,72 @@ LevelManager.prototype = {
 			player = new Player( Phaser, game, position );
 
 		state.objects.push( player );
-		state.objects.push( new Cannon( Phaser, game, position, player ) );
+
+		state.player = player;
+
+		var indexInCannonsArray = 0;
+		self.createCannon( position, indexInCannonsArray );
 	},
 
-	createCannon: function(position) {
+	createCannon: function(position, index) {
 		var self = this,
 			state = self.state,
 			Phaser = state.Phaser,
-			game = state.game;
+			game = state.game,
+			cannon = new Cannon( Phaser, game, position, index );
 
-		state.objects.push( new Cannon( Phaser, game, position ) );
+		if ( index === undefined || index < 0 ) {
+			throw new Error( "Level is not valid - cannon object with .properties.index = " + index );
+		}
+
+		state.objects.push( cannon );
+		state.cannons[ index ] = cannon;
 	},
 
 	createTarget: function(position) {
 		var self = this,
 			state = self.state,
 			Phaser = state.Phaser,
-			game = state.game;
+			game = state.game,
+			target = new Target( Phaser, game, position );
 
-		state.objects.push( new Target( Phaser, game, position ) );
+		state.objects.push( target );
+		state.target = target;
+	},
+
+	verifyLevelIsLoadedCorrectly: function() {
+		var self = this,
+			state = self.state,
+			player = state.player,
+			cannons = state.cannons,
+			target = state.target;
+
+		if ( !player ) {
+			throw new Error( "Level is not loaded correctly - no player!" );
+		}
+		if ( !target ) {
+			throw new Error( "Level is not loaded correctly - no target!" );
+		}
+		if ( !cannons || !cannons.length ) {
+			throw new Error( "Level is not loaded correctly - no cannons!" );
+		}
+
+		for ( var i = 0; i < cannons.length; i++ ) {
+			if ( cannons[i] === undefined ) {
+				throw new Error( "Level is not loaded correctly - empty cannon index!" );
+			}
+		}
 	}
 
 };
 
 module.exports = LevelManager;
-},{"./cannon":3,"./const":4,"./player":6,"./target":8,"./utils":9}],6:[function(require,module,exports){
+},{"./cannon":3,"./player":6,"./target":8,"./utils":9}],6:[function(require,module,exports){
 'use strict';
-
-var CONST = require("./const");
 
 function Player(Phaser, game, position) {
 	var self = this;
 
-	self.Phaser = Phaser;
-	self.game = game;
 	self.position = position;
 
 	var sprite = game.add.sprite( position.x, position.y, "player" );
@@ -9459,9 +9496,6 @@ function Player(Phaser, game, position) {
 }
 
 Player.prototype = {
-
-	Phaser: null,
-	game: null,
 
 	position: null,
 	sprite: null,
@@ -9477,13 +9511,14 @@ Player.prototype = {
 };
 
 module.exports = Player;
-},{"./const":4}],7:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 'use strict';
 
 function State() {
 	var self = this;
 
 	self.objects = [];
+	self.cannons = [];
 }
 
 State.prototype = {
@@ -9491,15 +9526,18 @@ State.prototype = {
 	Phaser: null,
 	game: null,
 
-	objects: null
+	level: 1,
+	objects: null,
+	player: null,
+	cannons: null,
+	target: null,
+	selectedCannon: 0
 
 };
 
 module.exports = State;
 },{}],8:[function(require,module,exports){
 'use strict';
-
-var CONST = require("./const");
 
 function Target(Phaser, game, position) {
 	var self = this;
@@ -9535,7 +9573,7 @@ Target.prototype = {
 };
 
 module.exports = Target;
-},{"./const":4}],9:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 'use strict';
 
 var utils = {
