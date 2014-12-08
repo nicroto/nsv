@@ -22,40 +22,37 @@ Player.prototype = {
 	sprite: null,
 
 	isFlying: false,
-	input: {
-		clickStarted: false
-	},
 
 	preload: function(Phaser, game) {
 		game.load.image( "player", "assets/player.png" );
 	},
 
-	update: function(state) {
-		var self = this,
-			game = state.game,
-			leftClickDown = game.input.activePointer.isDown;
+	update: function() {
 
-		if ( self.isFlying ) {
-			return;
-		}
-
-		if ( leftClickDown ) {
-			if ( !self.input.clickStarted ) {
-				self.startFlying( state );
-			}
-		}
-		self.input.clickStarted = leftClickDown;
 	},
 
 	render: function() {},
 
-	startFlying: function() {
+	launchFlight: function(velocityVecotr) {
 		var self = this,
 			sprite = self.sprite;
 
 		self.isFlying = true;
-
 		sprite.body.moves = true;
+
+		sprite.body.allowGravity = true;  
+		sprite.body.velocity.setTo(
+			velocityVecotr.x,
+			velocityVecotr.y
+		);
+	},
+
+	endFlight: function() {
+		var self = this,
+			sprite = self.sprite;
+
+		self.isFlying = false;
+		sprite.body.moves = false;
 	}
 
 };

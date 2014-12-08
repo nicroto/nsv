@@ -37,7 +37,7 @@ function Cannon(Phaser, game, position, index, player) {
 	self.initPower( Phaser, game, position );
 
 	if ( player ) {
-		self.player = player;
+		self.loadPlayer( player );
 	}
 }
 
@@ -119,9 +119,11 @@ Cannon.prototype = {
 	},
 
 	update: function(state) {
-		var self = this;
+		var self = this,
+			player = self.player,
+			timer = self.timer;
 
-		if ( self.player && !self.timer ) {
+		if ( player && !timer && !player.isFlying ) {
 			self.startCountDown( state );
 		}
 
@@ -130,6 +132,13 @@ Cannon.prototype = {
 
 	render: function() {
 
+	},
+
+	loadPlayer: function( player ) {
+		var self = this;
+
+		player.endFlight();
+		self.player = player;
 	},
 
 	startCountDown: function(state) {
@@ -180,8 +189,55 @@ Cannon.prototype = {
 	},
 
 	shoot: function() {
-		// TODO:
-		console.log( "Shoot!" )
+		var self = this,
+			power = self.power,
+			player = self.player,
+			velocityVector = self.getVelocityVector();
+
+		// hide power
+		power.sprite.alpha = 0;
+		player.launchFlight( velocityVector );
+	},
+
+	getVelocityVector: function() {
+		//                                               A
+		//
+		//                                             X  
+		//                                          XXXX  
+		//                                       XXXX  X  
+		//                                    XXXX     X  
+		//                                 XXXX   -50º X  
+		//                              XXXX           X  
+		//                           XXXX              X  
+		//                         XXX                 X  
+		//                       XX                    X  
+		//                    XXX                      X  
+		//                  XX                         X  
+		//               XXX                           X  
+		//            XXX                         XXXXXX  
+		//        XXX                            XX    X  
+		//      XXX                              XX  X X  
+		//     XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX  
+		//
+		// B                                             C
+		var self = this,
+			power = self.power,
+			rawAngle = power.sprite.angle,
+			xSign = rawAngle < 0 ? -1 : 1,
+			ySign = rawAngle < -90 ? 1 : -1,
+			angleADeg = rawAngle < 0 ? -rawAngle : rawAngle,
+			angleCDeg = 90,
+			angleBDeg = 180 - ( angleCDeg + angleADeg ),
+			sideAB = power.sprite.height, // hypothenuse
+			ratio = angleCDeg / sideAB,
+			sideAC = angleBDeg / ratio,
+			sideBC = angleADeg / ratio,
+			multiplayer = CONST.CANNON_POWER_MULTIPLIER;
+
+		return {
+			x: xSign * sideBC * multiplayer,
+			y: ySign * sideAC * multiplayer
+		};
 	},
 
 	onInputDown: function() {
@@ -206,7 +262,7 @@ Cannon.prototype = {
 				beforeUpper = newAngleRad < gun.angleUpperBoundRad,
 				afterLower = newAngleRad > gun.angleLowerBoundRad,
 				shouldRotate = true,
-				powerAngle;
+				verticalItemsAngle;
 
 			if ( beforeUpper || afterLower ) {
 				if ( gun.isRotationStick ) {
@@ -224,12 +280,16 @@ Cannon.prototype = {
 				} else {
 					gun.isRotationStick = false;
 				}
+				// optimization: power and player angle is directly derrived
+				verticalItemsAngle = newAngleRad + Math.PI / 2;
+
 				gunSprite.rotation = newAngleRad;
-				// optimization: power angle can be directly derrived
-				powerAngle = newAngleRad + Math.PI / 2;
+				if ( self.player ) {
+					self.player.sprite.rotation = verticalItemsAngle;
+				}
 			}
 
-			self.updatePower( state, powerAngle );
+			self.updatePower( state, verticalItemsAngle );
 		}
 	},
 
