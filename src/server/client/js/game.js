@@ -9597,6 +9597,16 @@ Cannon.prototype = {
 		self.resetBase( position );
 		self.resetGun( position );
 		self.resetPower( position );
+	},
+
+	recycle: function() {
+		var self = this,
+			gun = self.gun,
+			power = self.power;
+
+		self.baseSprite.kill();
+		gun.sprite.kill();
+		power.sprite.kill();
 	}
 
 };
@@ -9613,11 +9623,30 @@ CollisionHandler.prototype = {
 
 	update: function(state) {
 		var self = this;
+		self.checkPlayerTargetCollision( state );
 		self.checkPlayerCannonCollisions( state );
 		self.checkPlayerIsOutOfWorld( state );
 	},
 
 	render: function() {},
+
+	checkPlayerTargetCollision: function(state) {
+		var game = state.game,
+			player = state.player,
+			target = state.target;
+
+		if ( player.isFlying ) {
+			if ( player.leftCannonPremise ) {
+				var collision = game.physics.arcade.overlap(
+					player.sprite,
+					target.sprite
+				);
+				if ( collision ) {
+					state.levelUp = true;
+				}
+			}
+		}
+	},
 
 	checkPlayerCannonCollisions: function(state) {
 		var self = this,
@@ -9628,11 +9657,11 @@ CollisionHandler.prototype = {
 
 		if ( player.isFlying ) {
 			if ( !player.leftCannonPremise ) {
-				var overlaps = game.physics.arcade.overlap(
+				var collision = game.physics.arcade.overlap(
 					player.sprite,
 					selectedCannon.baseSprite
 				);
-				if ( !overlaps ) {
+				if ( !collision ) {
 					player.leftCannonPremise = true;
 				} else {
 					return;
@@ -9699,6 +9728,8 @@ module.exports = {
 
 	HTML_CONTAINER: 'gameContainer',
 
+	LEVELS_COUNT: 2,
+
 	SCREEN_SIZE_X: 900,
 	SCREEN_SIZE_Y: 675,
 
@@ -9714,7 +9745,8 @@ module.exports = {
 },{}],6:[function(require,module,exports){
 'use strict';
 
-var utils = require("./utils"),
+var CONST = require("./const"),
+	utils = require("./utils"),
 	Player = require("./player"),
 	Cannon = require("./cannon"),
 	Target = require("./target"),
@@ -9780,6 +9812,9 @@ LevelManager.prototype = {
 		} else if ( state.restartLevel ) {
 			self.restartLevel();
 			state.restartLevel = false;
+		} else if ( state.levelUp ) {
+			self.levelUp();
+			state.levelUp = false;
 		}
 
 		state.collisionHandler.update( state );
@@ -9798,6 +9833,29 @@ LevelManager.prototype = {
 		state.objects.forEach( function(element) {
 			element.render( state );
 		} );
+	},
+
+	levelUp: function() {
+		var self = this,
+			state = this.state,
+			objects = state.objects;
+
+		objects.forEach( function(object) {
+			object.recycle();
+		} );
+
+		state.objects = [];
+		state.player = null;
+		state.cannons = [];
+		state.target = null;
+		state.selectedCannon = 0;
+
+		if ( state.level < CONST.LEVELS_COUNT ) {
+			state.level += 1;
+			self.createLevel();
+		} else {
+			// TODO:
+		}
 	},
 
 	restartLevel: function() {
@@ -9934,7 +9992,7 @@ LevelManager.prototype = {
 };
 
 module.exports = LevelManager;
-},{"./cannon":3,"./collision-handler":4,"./player":7,"./target":9,"./utils":10}],7:[function(require,module,exports){
+},{"./cannon":3,"./collision-handler":4,"./const":5,"./player":7,"./target":9,"./utils":10}],7:[function(require,module,exports){
 'use strict';
 
 var CONST = require("./const");
@@ -10025,6 +10083,12 @@ Player.prototype = {
 		var self = this;
 
 		self.setPosition( self.position );
+	},
+
+	recycle: function() {
+		var self = this;
+
+		self.sprite.kill();
 	}
 
 };
@@ -10045,13 +10109,14 @@ State.prototype = {
 	Phaser: null,
 	game: null,
 
+	level: 1,
 	map: null,
 
 	collisionHandler: null,
 
 	gameOver: false,
 	restartLevel: false,
-	level: 1,
+	levelUp: false,
 	objects: null,
 	player: null,
 	cannons: null,
@@ -10093,6 +10158,12 @@ Target.prototype = {
 
 	reset: function() {
 		// TODO:
+	},
+
+	recycle: function() {
+		var self = this;
+
+		self.sprite.kill();
 	}
 
 };

@@ -1,6 +1,7 @@
 'use strict';
 
-var utils = require("./utils"),
+var CONST = require("./const"),
+	utils = require("./utils"),
 	Player = require("./player"),
 	Cannon = require("./cannon"),
 	Target = require("./target"),
@@ -66,6 +67,9 @@ LevelManager.prototype = {
 		} else if ( state.restartLevel ) {
 			self.restartLevel();
 			state.restartLevel = false;
+		} else if ( state.levelUp ) {
+			self.levelUp();
+			state.levelUp = false;
 		}
 
 		state.collisionHandler.update( state );
@@ -84,6 +88,29 @@ LevelManager.prototype = {
 		state.objects.forEach( function(element) {
 			element.render( state );
 		} );
+	},
+
+	levelUp: function() {
+		var self = this,
+			state = this.state,
+			objects = state.objects;
+
+		objects.forEach( function(object) {
+			object.recycle();
+		} );
+
+		state.objects = [];
+		state.player = null;
+		state.cannons = [];
+		state.target = null;
+		state.selectedCannon = 0;
+
+		if ( state.level < CONST.LEVELS_COUNT ) {
+			state.level += 1;
+			self.createLevel();
+		} else {
+			// TODO:
+		}
 	},
 
 	restartLevel: function() {

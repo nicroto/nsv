@@ -373,6 +373,16 @@ Cannon.prototype = {
 		self.resetBase( position );
 		self.resetGun( position );
 		self.resetPower( position );
+	},
+
+	recycle: function() {
+		var self = this,
+			gun = self.gun,
+			power = self.power;
+
+		self.baseSprite.kill();
+		gun.sprite.kill();
+		power.sprite.kill();
 	}
 
 };

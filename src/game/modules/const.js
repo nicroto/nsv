@@ -4,6 +4,8 @@ module.exports = {
 
 	HTML_CONTAINER: 'gameContainer',
 
+	LEVELS_COUNT: 2,
+
 	SCREEN_SIZE_X: 900,
 	SCREEN_SIZE_Y: 675,
 

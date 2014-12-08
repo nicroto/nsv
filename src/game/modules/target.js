@@ -29,6 +29,12 @@ Target.prototype = {
 
 	reset: function() {
 		// TODO:
+	},
+
+	recycle: function() {
+		var self = this;
+
+		self.sprite.kill();
 	}
 
 };

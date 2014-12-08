@@ -8,11 +8,30 @@ CollisionHandler.prototype = {
 
 	update: function(state) {
 		var self = this;
+		self.checkPlayerTargetCollision( state );
 		self.checkPlayerCannonCollisions( state );
 		self.checkPlayerIsOutOfWorld( state );
 	},
 
 	render: function() {},
+
+	checkPlayerTargetCollision: function(state) {
+		var game = state.game,
+			player = state.player,
+			target = state.target;
+
+		if ( player.isFlying ) {
+			if ( player.leftCannonPremise ) {
+				var collision = game.physics.arcade.overlap(
+					player.sprite,
+					target.sprite
+				);
+				if ( collision ) {
+					state.levelUp = true;
+				}
+			}
+		}
+	},
 
 	checkPlayerCannonCollisions: function(state) {
 		var self = this,
@@ -23,11 +42,11 @@ CollisionHandler.prototype = {
 
 		if ( player.isFlying ) {
 			if ( !player.leftCannonPremise ) {
-				var overlaps = game.physics.arcade.overlap(
+				var collision = game.physics.arcade.overlap(
 					player.sprite,
 					selectedCannon.baseSprite
 				);
-				if ( !overlaps ) {
+				if ( !collision ) {
 					player.leftCannonPremise = true;
 				} else {
 					return;

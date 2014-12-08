@@ -88,6 +88,12 @@ Player.prototype = {
 		var self = this;
 
 		self.setPosition( self.position );
+	},
+
+	recycle: function() {
+		var self = this;
+
+		self.sprite.kill();
 	}
 
 };

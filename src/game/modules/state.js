@@ -12,13 +12,14 @@ State.prototype = {
 	Phaser: null,
 	game: null,
 
+	level: 1,
 	map: null,
 
 	collisionHandler: null,
 
 	gameOver: false,
 	restartLevel: false,
-	level: 1,
+	levelUp: false,
 	objects: null,
 	player: null,
 	cannons: null,
