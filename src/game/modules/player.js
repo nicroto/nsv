@@ -1,5 +1,7 @@
 'use strict';
 
+var CONST = require("./const");
+
 function Player(Phaser, game, position) {
 	var self = this;
 
@@ -9,7 +11,6 @@ function Player(Phaser, game, position) {
 	game.physics.enable( sprite, Phaser.Physics.ARCADE );
 	sprite.body.collideWorldBounds = false;
 	sprite.body.moves = false;
-	sprite.body.gravity.setTo( 0, 180 );
 	sprite.angle = position.angle;
 	sprite.anchor.setTo( 0.5, 0.95 );
 
@@ -41,6 +42,10 @@ Player.prototype = {
 		sprite.body.moves = true;
 
 		sprite.body.allowGravity = true;  
+		sprite.body.gravity.setTo(
+			CONST.PLAYER_GRAVITY_X,
+			CONST.PLAYER_GRAVITY_Y
+		);
 		sprite.body.velocity.setTo(
 			velocityVecotr.x,
 			velocityVecotr.y

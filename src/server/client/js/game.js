@@ -9548,8 +9548,10 @@ module.exports = {
 	SCREEN_SIZE_Y: 675,
 
 	PLAYER_ACCELERATION: 20,
+	PLAYER_GRAVITY_Y: 100,
+	PLAYER_GRAVITY_X: 0,
 	CANNON_POWER_HEIGTH_MAX: 100,
-	CANNON_POWER_MULTIPLIER: 15,
+	CANNON_POWER_MULTIPLIER: 5,
 	CANNON_SECONDS_BEFORE_SHOT: 6
 
 };
@@ -9597,7 +9599,6 @@ LevelManager.prototype = {
 		game.renderer.roundPixels = true;
 
 		game.physics.startSystem( Phaser.Physics.ARCADE );
-		game.physics.arcade.gravity.y = 500;
 
 		var map = game.add.tilemap( 'tilemap' );
 		map.addTilesetImage('tile-set', 'tiles');
@@ -9747,6 +9748,8 @@ module.exports = LevelManager;
 },{"./cannon":3,"./player":6,"./target":8,"./utils":9}],6:[function(require,module,exports){
 'use strict';
 
+var CONST = require("./const");
+
 function Player(Phaser, game, position) {
 	var self = this;
 
@@ -9756,7 +9759,6 @@ function Player(Phaser, game, position) {
 	game.physics.enable( sprite, Phaser.Physics.ARCADE );
 	sprite.body.collideWorldBounds = false;
 	sprite.body.moves = false;
-	sprite.body.gravity.setTo( 0, 180 );
 	sprite.angle = position.angle;
 	sprite.anchor.setTo( 0.5, 0.95 );
 
@@ -9788,6 +9790,10 @@ Player.prototype = {
 		sprite.body.moves = true;
 
 		sprite.body.allowGravity = true;  
+		sprite.body.gravity.setTo(
+			CONST.PLAYER_GRAVITY_X,
+			CONST.PLAYER_GRAVITY_Y
+		);
 		sprite.body.velocity.setTo(
 			velocityVecotr.x,
 			velocityVecotr.y
@@ -9805,7 +9811,7 @@ Player.prototype = {
 };
 
 module.exports = Player;
-},{}],7:[function(require,module,exports){
+},{"./const":4}],7:[function(require,module,exports){
 'use strict';
 
 function State() {
