@@ -15,12 +15,16 @@ function Player(Phaser, game, position) {
 	sprite.anchor.setTo( 0.5, 0.95 );
 
 	self.sprite = sprite;
+
+	self.livesLeft = CONST.PLAYER_INITIAL_LIVES_COUNT;
 }
 
 Player.prototype = {
 
 	position: null,
 	sprite: null,
+
+	livesLeft: -1,
 
 	isFlying: false,
 	leftCannonPremise: false,
@@ -71,6 +75,19 @@ Player.prototype = {
 		sprite.angle = position.angle;
 
 		self.position = position;
+	},
+
+	die: function() {
+		var self = this;
+		self.livesLeft -= 1;
+
+		return self.livesLeft > 0;
+	},
+
+	reset: function() {
+		var self = this;
+
+		self.setPosition( self.position );
 	}
 
 };

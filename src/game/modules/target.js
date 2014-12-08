@@ -27,6 +27,10 @@ Target.prototype = {
 
 	render: function() {},
 
+	reset: function() {
+		// TODO:
+	}
+
 };
 
 module.exports = Target;

@@ -7,6 +7,9 @@ var $ = require("jquery");
 function Cannon(Phaser, game, position, index, player) {
 	var self = this;
 
+	self.Phaser = Phaser;
+	self.game = game;
+
 	self.position = position;
 	self.index = index;
 
@@ -18,8 +21,9 @@ function Cannon(Phaser, game, position, index, player) {
 	);
 	game.physics.enable( baseSprite, Phaser.Physics.ARCADE );
 	baseSprite.body.allowGravity = false;
-	baseSprite.angle = position.angle;
 	baseSprite.anchor.setTo( 0.5 );
+
+	// events
 	baseSprite.inputEnabled = true;
 	baseSprite.input.start( 0, true );
 	baseSprite.events.onInputDown.add(
@@ -30,11 +34,13 @@ function Cannon(Phaser, game, position, index, player) {
 	);
 	self.baseSprite = baseSprite;
 
+	self.resetBase( position );
+
 	// gun
-	self.initGun( Phaser, game, position );
+	self.initGun( position );
 
 	// power
-	self.initPower( Phaser, game, position );
+	self.initPower( position );
 
 	if ( player ) {
 		self.loadPlayer( player );
@@ -42,6 +48,9 @@ function Cannon(Phaser, game, position, index, player) {
 }
 
 Cannon.prototype = {
+
+	Phaser: null,
+	game: null,
 
 	position: null,
 	index: -1,
@@ -59,36 +68,66 @@ Cannon.prototype = {
 		game.load.image( "power", "assets/ellastic.png" );
 	},
 
-	initGun: function(Phaser, game, position) {
+	resetBase: function(position) {
 		var self = this,
+			baseSprite = self.baseSprite;
+
+		baseSprite.x = position.x;
+		baseSprite.y = position.y;
+		baseSprite.angle = position.angle;
+	},
+
+	initGun: function(position) {
+		var self = this,
+			Phaser = self.Phaser,
+			game = self.game,
 			sprite = game.add.sprite(
 				position.x,
 				position.y,
 				"cannon-gun"
-			),
+			);
+
+		self.gun = {
+			sprite: sprite,
+			originalAngle: null,
+			angleUpperBoundRad: null,
+			angleLowerBoundRad: null,
+			isRotationStick: false
+		};
+
+		self.resetGun( position );
+
+		game.physics.enable( sprite, Phaser.Physics.ARCADE );
+
+		sprite.body.allowGravity = false;
+		sprite.anchor.setTo( 0.05, 0.5 );
+
+	},
+
+	resetGun: function(position) {
+		var self = this,
+			Phaser = self.Phaser,
+			gun = self.gun,
 			originalAngle = position.angle - 90,
 			originalAngleRad = Phaser.Math.degToRad( originalAngle ),
 			quarterPi = Math.PI / 4,
 			upperBoundRad = originalAngleRad - quarterPi,
 			lowerBoundRad = originalAngleRad + quarterPi;
 
-		game.physics.enable( sprite, Phaser.Physics.ARCADE );
+		gun.originalAngle = originalAngle;
+		gun.angleUpperBoundRad = upperBoundRad;
+		gun.angleLowerBoundRad = lowerBoundRad;
+		gun.isRotationStick = false;
 
-		sprite.angle = originalAngle;
-		sprite.body.allowGravity = false;
-		sprite.anchor.setTo( 0.05, 0.5 );
-
-		self.gun = {
-			sprite: sprite,
-			originalAngle: originalAngle,
-			angleUpperBoundRad: upperBoundRad,
-			angleLowerBoundRad: lowerBoundRad,
-			isRotationStick: false
-		};
+		gun.sprite.x = position.x;
+		gun.sprite.y = position.y;
+		gun.sprite.angle = originalAngle;
 	},
 
-	initPower: function(Phaser, game, position) {
+	initPower: function(position) {
 		var self = this,
+			Phaser = self.Phaser,
+			game = self.game,
 			sprite = game.add.sprite(
 				position.x,
 				position.y,
@@ -97,9 +136,6 @@ Cannon.prototype = {
 
 		game.physics.enable( sprite, Phaser.Physics.ARCADE );
 		sprite.body.allowGravity = false;
-		sprite.height = 0;
-		sprite.width = 8;
-		sprite.alpha = 0;
 		sprite.anchor.setTo( 0.5, 0.0 );
 
 		// events
@@ -116,6 +152,20 @@ Cannon.prototype = {
 			sprite: sprite,
 			dragging: false
 		};
+
+		self.resetPower( position );
+	},
+
+	resetPower: function(position) {
+		var self = this,
+			power = self.power,
+			sprite = power.sprite;
+
+		sprite.x = position.x;
+		sprite.y = position.y;
+		sprite.height = 0;
+		sprite.width = 8;
+		sprite.alpha = 0;
 	},
 
 	update: function(state) {
@@ -314,6 +364,15 @@ Cannon.prototype = {
 
 		sprite.height = ( newHeight < CONST.CANNON_POWER_HEIGTH_MAX ) ?
 			newHeight : CONST.CANNON_POWER_HEIGTH_MAX;
+	},
+
+	reset: function() {
+		var self = this,
+			position = self.position;
+
+		self.resetBase( position );
+		self.resetGun( position );
+		self.resetPower( position );
 	}
 
 };

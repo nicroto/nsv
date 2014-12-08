@@ -60,6 +60,14 @@ LevelManager.prototype = {
 		var self = this,
 			state = self.state;
 
+		if ( state.gameOver ) {
+			// TODO:
+			state.gameOver = false;
+		} else if ( state.restartLevel ) {
+			self.restartLevel();
+			state.restartLevel = false;
+		}
+
 		state.collisionHandler.update( state );
 
 		state.objects.forEach( function(element) {
@@ -71,8 +79,28 @@ LevelManager.prototype = {
 		var self = this,
 			state = self.state;
 
+		state.collisionHandler.render( state );
+
 		state.objects.forEach( function(element) {
 			element.render( state );
+		} );
+	},
+
+	restartLevel: function() {
+		var state = this.state,
+			player = state.player,
+			objects = state.objects,
+			cannons = state.cannons,
+			selectedCannon = cannons[ state.selectedCannon ];
+
+		if ( state.selectedCannon !== 0 ) {
+			selectedCannon.detachFromPlayer();
+			cannons[0].loadPlayer( player );
+			state.selectedCannon = 0;
+		}
+
+		objects.forEach( function(object) {
+			object.reset();
 		} );
 	},
 
@@ -84,8 +112,7 @@ LevelManager.prototype = {
 			backgroundLayerName = level + "-background",
 			objectsLayerName = level + "-objects";
 
-		var layer = map.createLayer( backgroundLayerName );
-		state.layer = layer;
+		map.createLayer( backgroundLayerName );
 
 		var levelObjects = map.objects[ objectsLayerName ];
 

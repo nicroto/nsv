@@ -7,6 +7,14 @@ CollisionHandler.prototype = {
 	preload: function() {},
 
 	update: function(state) {
+		var self = this;
+		self.checkPlayerCannonCollisions( state );
+		self.checkPlayerIsOutOfWorld( state );
+	},
+
+	render: function() {},
+
+	checkPlayerCannonCollisions: function(state) {
 		var self = this,
 			game = state.game,
 			player = state.player,
@@ -43,8 +51,6 @@ CollisionHandler.prototype = {
 		}
 	},
 
-	render: function() {},
-
 	playerCannonCollision: function() {
 		var context = this,
 			state = context.state,
@@ -55,6 +61,27 @@ CollisionHandler.prototype = {
 		selectedCannon.detachFromPlayer();
 		newCannon.loadPlayer( player );
 		state.selectedCannon = newCannon.index;
+	},
+
+	checkPlayerIsOutOfWorld: function(state) {
+		var game = state.game,
+			player = state.player,
+			sprite = player.sprite;
+
+		if (
+			sprite.x < 0 ||
+			sprite.x > game.width ||
+			sprite.y < 0 ||
+			sprite.y > game.height
+		) {
+			var hasMoreLives = player.die( state );
+
+			if ( !hasMoreLives ) {
+				state.gameOver = true;
+			} else {
+				state.restartLevel = true;
+			}
+		}
 	}
 
 };

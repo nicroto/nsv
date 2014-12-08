@@ -9231,6 +9231,9 @@ var $ = require("jquery");
 function Cannon(Phaser, game, position, index, player) {
 	var self = this;
 
+	self.Phaser = Phaser;
+	self.game = game;
+
 	self.position = position;
 	self.index = index;
 
@@ -9242,8 +9245,9 @@ function Cannon(Phaser, game, position, index, player) {
 	);
 	game.physics.enable( baseSprite, Phaser.Physics.ARCADE );
 	baseSprite.body.allowGravity = false;
-	baseSprite.angle = position.angle;
 	baseSprite.anchor.setTo( 0.5 );
+
+	// events
 	baseSprite.inputEnabled = true;
 	baseSprite.input.start( 0, true );
 	baseSprite.events.onInputDown.add(
@@ -9254,11 +9258,13 @@ function Cannon(Phaser, game, position, index, player) {
 	);
 	self.baseSprite = baseSprite;
 
+	self.resetBase( position );
+
 	// gun
-	self.initGun( Phaser, game, position );
+	self.initGun( position );
 
 	// power
-	self.initPower( Phaser, game, position );
+	self.initPower( position );
 
 	if ( player ) {
 		self.loadPlayer( player );
@@ -9266,6 +9272,9 @@ function Cannon(Phaser, game, position, index, player) {
 }
 
 Cannon.prototype = {
+
+	Phaser: null,
+	game: null,
 
 	position: null,
 	index: -1,
@@ -9283,36 +9292,66 @@ Cannon.prototype = {
 		game.load.image( "power", "assets/ellastic.png" );
 	},
 
-	initGun: function(Phaser, game, position) {
+	resetBase: function(position) {
 		var self = this,
+			baseSprite = self.baseSprite;
+
+		baseSprite.x = position.x;
+		baseSprite.y = position.y;
+		baseSprite.angle = position.angle;
+	},
+
+	initGun: function(position) {
+		var self = this,
+			Phaser = self.Phaser,
+			game = self.game,
 			sprite = game.add.sprite(
 				position.x,
 				position.y,
 				"cannon-gun"
-			),
+			);
+
+		self.gun = {
+			sprite: sprite,
+			originalAngle: null,
+			angleUpperBoundRad: null,
+			angleLowerBoundRad: null,
+			isRotationStick: false
+		};
+
+		self.resetGun( position );
+
+		game.physics.enable( sprite, Phaser.Physics.ARCADE );
+
+		sprite.body.allowGravity = false;
+		sprite.anchor.setTo( 0.05, 0.5 );
+
+	},
+
+	resetGun: function(position) {
+		var self = this,
+			Phaser = self.Phaser,
+			gun = self.gun,
 			originalAngle = position.angle - 90,
 			originalAngleRad = Phaser.Math.degToRad( originalAngle ),
 			quarterPi = Math.PI / 4,
 			upperBoundRad = originalAngleRad - quarterPi,
 			lowerBoundRad = originalAngleRad + quarterPi;
 
-		game.physics.enable( sprite, Phaser.Physics.ARCADE );
+		gun.originalAngle = originalAngle;
+		gun.angleUpperBoundRad = upperBoundRad;
+		gun.angleLowerBoundRad = lowerBoundRad;
+		gun.isRotationStick = false;
 
-		sprite.angle = originalAngle;
-		sprite.body.allowGravity = false;
-		sprite.anchor.setTo( 0.05, 0.5 );
-
-		self.gun = {
-			sprite: sprite,
-			originalAngle: originalAngle,
-			angleUpperBoundRad: upperBoundRad,
-			angleLowerBoundRad: lowerBoundRad,
-			isRotationStick: false
-		};
+		gun.sprite.x = position.x;
+		gun.sprite.y = position.y;
+		gun.sprite.angle = originalAngle;
 	},
 
-	initPower: function(Phaser, game, position) {
+	initPower: function(position) {
 		var self = this,
+			Phaser = self.Phaser,
+			game = self.game,
 			sprite = game.add.sprite(
 				position.x,
 				position.y,
@@ -9321,9 +9360,6 @@ Cannon.prototype = {
 
 		game.physics.enable( sprite, Phaser.Physics.ARCADE );
 		sprite.body.allowGravity = false;
-		sprite.height = 0;
-		sprite.width = 8;
-		sprite.alpha = 0;
 		sprite.anchor.setTo( 0.5, 0.0 );
 
 		// events
@@ -9340,6 +9376,20 @@ Cannon.prototype = {
 			sprite: sprite,
 			dragging: false
 		};
+
+		self.resetPower( position );
+	},
+
+	resetPower: function(position) {
+		var self = this,
+			power = self.power,
+			sprite = power.sprite;
+
+		sprite.x = position.x;
+		sprite.y = position.y;
+		sprite.height = 0;
+		sprite.width = 8;
+		sprite.alpha = 0;
 	},
 
 	update: function(state) {
@@ -9538,6 +9588,15 @@ Cannon.prototype = {
 
 		sprite.height = ( newHeight < CONST.CANNON_POWER_HEIGTH_MAX ) ?
 			newHeight : CONST.CANNON_POWER_HEIGTH_MAX;
+	},
+
+	reset: function() {
+		var self = this,
+			position = self.position;
+
+		self.resetBase( position );
+		self.resetGun( position );
+		self.resetPower( position );
 	}
 
 };
@@ -9553,6 +9612,14 @@ CollisionHandler.prototype = {
 	preload: function() {},
 
 	update: function(state) {
+		var self = this;
+		self.checkPlayerCannonCollisions( state );
+		self.checkPlayerIsOutOfWorld( state );
+	},
+
+	render: function() {},
+
+	checkPlayerCannonCollisions: function(state) {
 		var self = this,
 			game = state.game,
 			player = state.player,
@@ -9589,8 +9656,6 @@ CollisionHandler.prototype = {
 		}
 	},
 
-	render: function() {},
-
 	playerCannonCollision: function() {
 		var context = this,
 			state = context.state,
@@ -9601,6 +9666,27 @@ CollisionHandler.prototype = {
 		selectedCannon.detachFromPlayer();
 		newCannon.loadPlayer( player );
 		state.selectedCannon = newCannon.index;
+	},
+
+	checkPlayerIsOutOfWorld: function(state) {
+		var game = state.game,
+			player = state.player,
+			sprite = player.sprite;
+
+		if (
+			sprite.x < 0 ||
+			sprite.x > game.width ||
+			sprite.y < 0 ||
+			sprite.y > game.height
+		) {
+			var hasMoreLives = player.die( state );
+
+			if ( !hasMoreLives ) {
+				state.gameOver = true;
+			} else {
+				state.restartLevel = true;
+			}
+		}
 	}
 
 };
@@ -9616,9 +9702,10 @@ module.exports = {
 	SCREEN_SIZE_X: 900,
 	SCREEN_SIZE_Y: 675,
 
-	PLAYER_ACCELERATION: 20,
+	PLAYER_INITIAL_LIVES_COUNT: 5,
 	PLAYER_GRAVITY_Y: 100,
 	PLAYER_GRAVITY_X: 0,
+
 	CANNON_POWER_HEIGTH_MAX: 100,
 	CANNON_POWER_MULTIPLIER: 5,
 	CANNON_SECONDS_BEFORE_SHOT: 6
@@ -9687,6 +9774,14 @@ LevelManager.prototype = {
 		var self = this,
 			state = self.state;
 
+		if ( state.gameOver ) {
+			// TODO:
+			state.gameOver = false;
+		} else if ( state.restartLevel ) {
+			self.restartLevel();
+			state.restartLevel = false;
+		}
+
 		state.collisionHandler.update( state );
 
 		state.objects.forEach( function(element) {
@@ -9698,8 +9793,28 @@ LevelManager.prototype = {
 		var self = this,
 			state = self.state;
 
+		state.collisionHandler.render( state );
+
 		state.objects.forEach( function(element) {
 			element.render( state );
+		} );
+	},
+
+	restartLevel: function() {
+		var state = this.state,
+			player = state.player,
+			objects = state.objects,
+			cannons = state.cannons,
+			selectedCannon = cannons[ state.selectedCannon ];
+
+		if ( state.selectedCannon !== 0 ) {
+			selectedCannon.detachFromPlayer();
+			cannons[0].loadPlayer( player );
+			state.selectedCannon = 0;
+		}
+
+		objects.forEach( function(object) {
+			object.reset();
 		} );
 	},
 
@@ -9711,8 +9826,7 @@ LevelManager.prototype = {
 			backgroundLayerName = level + "-background",
 			objectsLayerName = level + "-objects";
 
-		var layer = map.createLayer( backgroundLayerName );
-		state.layer = layer;
+		map.createLayer( backgroundLayerName );
 
 		var levelObjects = map.objects[ objectsLayerName ];
 
@@ -9838,12 +9952,16 @@ function Player(Phaser, game, position) {
 	sprite.anchor.setTo( 0.5, 0.95 );
 
 	self.sprite = sprite;
+
+	self.livesLeft = CONST.PLAYER_INITIAL_LIVES_COUNT;
 }
 
 Player.prototype = {
 
 	position: null,
 	sprite: null,
+
+	livesLeft: -1,
 
 	isFlying: false,
 	leftCannonPremise: false,
@@ -9894,6 +10012,19 @@ Player.prototype = {
 		sprite.angle = position.angle;
 
 		self.position = position;
+	},
+
+	die: function() {
+		var self = this;
+		self.livesLeft -= 1;
+
+		return self.livesLeft > 0;
+	},
+
+	reset: function() {
+		var self = this;
+
+		self.setPosition( self.position );
 	}
 
 };
@@ -9914,8 +10045,12 @@ State.prototype = {
 	Phaser: null,
 	game: null,
 
+	map: null,
+
 	collisionHandler: null,
 
+	gameOver: false,
+	restartLevel: false,
 	level: 1,
 	objects: null,
 	player: null,
@@ -9955,6 +10090,10 @@ Target.prototype = {
 	update: function() {},
 
 	render: function() {},
+
+	reset: function() {
+		// TODO:
+	}
 
 };
 
