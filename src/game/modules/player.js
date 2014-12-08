@@ -1,7 +1,5 @@
 'use strict';
 
-var CONST = require("./const");
-
 function Player(Phaser, game, position) {
 	var self = this;
 
@@ -35,8 +33,6 @@ Player.prototype = {
 	update: function(state) {
 		var self = this,
 			game = state.game,
-			Phaser = state.Phaser,
-			sprite = self.sprite,
 			leftClickDown = game.input.activePointer.isDown;
 
 		if ( self.isFlying ) {
@@ -53,9 +49,8 @@ Player.prototype = {
 
 	render: function() {},
 
-	startFlying: function(state) {
+	startFlying: function() {
 		var self = this,
-			game = state.game,
 			sprite = self.sprite;
 
 		self.isFlying = true;

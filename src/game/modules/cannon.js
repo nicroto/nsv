@@ -26,17 +26,10 @@ function Cannon(Phaser, game, position, index) {
 	baseSprite.events.onInputUp.add(
 		$.proxy( self.onInputUp, self )
 	);
+	self.baseSprite = baseSprite;
 
 	// gun
-	var gunSprite = game.add.sprite(
-		position.x,
-		position.y,
-		"cannon-gun"
-	);
-	game.physics.enable( gunSprite, Phaser.Physics.ARCADE );
-	gunSprite.body.allowGravity = false;
-	gunSprite.angle = self.gunAngle = position.angle - 90;
-	gunSprite.anchor.setTo( 0.05, 0.5 );
+	self.initGun( Phaser, game, position );
 
 	// ellastic
 	var ellasticSprite = game.add.sprite(400, 350, 'ellastic');
@@ -46,16 +39,13 @@ function Cannon(Phaser, game, position, index) {
 	ellasticSprite.rotation = 220;
 	ellasticSprite.alpha = 0;
 	ellasticSprite.anchor.setTo(0.5, 0.0);
-
-	self.baseSprite = baseSprite;
-	self.gunSprite = gunSprite;
 	self.ellasticSprite = ellasticSprite;
 }
 
 Cannon.prototype = {
 
 	position: null,
-	gunAngle: null,
+	gun: null,
 	index: -1,
 
 	baseSprite: null,
@@ -71,16 +61,43 @@ Cannon.prototype = {
 		game.load.image( "ellastic", "assets/ellastic.png" );
 	},
 
-	update: function(state) {
+	initGun: function(Phaser, game, position) {
 		var self = this,
-			Phaser = state.Phaser,
-			game = state.game,
-			gunSprite = self.gunSprite;
+			sprite = game.add.sprite(
+				position.x,
+				position.y,
+				"cannon-gun"
+			),
+			originalAngle = position.angle - 90,
+			originalAngleRad = Phaser.Math.degToRad( originalAngle ),
+			quarterPi = Math.PI / 4,
+			upperBoundRad = originalAngleRad - quarterPi,
+			lowerBoundRad = originalAngleRad + quarterPi;
 
-		self.updateRotation( state )
+		game.physics.enable( sprite, Phaser.Physics.ARCADE );
+
+		sprite.angle = originalAngle;
+		sprite.body.allowGravity = false;
+		sprite.anchor.setTo( 0.05, 0.5 );
+
+		self.gun = {
+			sprite: sprite,
+			originalAngle: originalAngle,
+			angleUpperBoundRad: upperBoundRad,
+			angleLowerBoundRad: lowerBoundRad,
+			isRotationStick: false
+		};
 	},
 
-	render: function() {},
+	update: function(state) {
+		var self = this;
+
+		self.updateRotation( state );
+	},
+
+	render: function() {
+
+	},
 
 	onInputDown: function() {
 		var self = this;
@@ -94,21 +111,30 @@ Cannon.prototype = {
 
 	updateRotation: function(state) {
 		var self = this,
-			Phaser = state.Phaser,
 			game = state.game,
-			gunSprite = self.gunSprite;
+			gun = self.gun,
+			gunSprite = gun.sprite;
 
 		if ( self.isPowerLoading ) {
-			var originalAngleRad = Phaser.Math.degToRad( self.gunAngle ),
-				newAngleRad = game.physics.arcade.angleToPointer( gunSprite ),
-				quarterPi = Math.PI / 4,
-				upperBoundRad = originalAngleRad - quarterPi,
-				lowerBoundRad = originalAngleRad + quarterPi;
+			var newAngleRad =
+				game.physics.arcade.angleToPointer( gunSprite )- Math.PI,
+				beforeUpper = newAngleRad < gun.angleUpperBoundRad,
+				afterLower = newAngleRad > gun.angleLowerBoundRad;
 
-			if ( newAngleRad < upperBoundRad ) {
-				newAngleRad = upperBoundRad;
-			} else if ( newAngleRad > lowerBoundRad ) {
-				newAngleRad = lowerBoundRad;
+			if ( beforeUpper || afterLower ) {
+				if ( gun.isRotationStick ) {
+					return;
+				} else {
+					gun.isRotationStick = true;
+				}
+			}
+
+			if ( beforeUpper ) {
+				newAngleRad = gun.angleUpperBoundRad;
+			} else if ( afterLower ) {
+				newAngleRad = gun.angleLowerBoundRad;
+			} else {
+				gun.isRotationStick = false;
 			}
 
 			gunSprite.rotation = newAngleRad;
