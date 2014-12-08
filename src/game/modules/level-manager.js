@@ -41,6 +41,7 @@ LevelManager.prototype = {
 		game.renderer.roundPixels = true;
 
 		game.physics.startSystem( Phaser.Physics.ARCADE );
+		game.physics.arcade.gravity.y = 500;
 
 		var map = game.add.tilemap( 'tilemap' );
 		map.addTilesetImage('tile-set', 'tiles');

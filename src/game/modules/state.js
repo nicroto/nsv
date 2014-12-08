@@ -16,8 +16,7 @@ State.prototype = {
 	objects: null,
 	player: null,
 	cannons: null,
-	target: null,
-	selectedCannon: 0
+	target: null
 
 };
 

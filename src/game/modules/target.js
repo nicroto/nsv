@@ -11,6 +11,7 @@ function Target(Phaser, game, position) {
 	game.physics.enable( sprite, Phaser.Physics.ARCADE );
 	sprite.anchor.setTo( 0.5 );
 	sprite.body.drag.set( 100 );
+	sprite.body.allowGravity = false;
 
 	self.sprite = sprite;
 }
