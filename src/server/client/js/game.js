@@ -9224,6 +9224,8 @@ state.game = new Phaser.Game(
 },{"./modules/const":4,"./modules/level-manager":5,"./modules/state":7,"jquery":1}],3:[function(require,module,exports){
 'use strict';
 
+var CONST = require("./const");
+
 var $ = require("jquery");
 
 function Cannon(Phaser, game, position, index) {
@@ -9255,34 +9257,25 @@ function Cannon(Phaser, game, position, index) {
 	// gun
 	self.initGun( Phaser, game, position );
 
-	// ellastic
-	var ellasticSprite = game.add.sprite(400, 350, 'ellastic');
-	game.physics.enable( ellasticSprite, Phaser.Physics.ARCADE );
-	ellasticSprite.body.allowGravity = false;
-	ellasticSprite.width = 8;
-	ellasticSprite.rotation = 220;
-	ellasticSprite.alpha = 0;
-	ellasticSprite.anchor.setTo(0.5, 0.0);
-	self.ellasticSprite = ellasticSprite;
+	// power
+	self.initPower( Phaser, game, position );
 }
 
 Cannon.prototype = {
 
 	position: null,
-	gun: null,
 	index: -1,
 
 	baseSprite: null,
-	gunSprite: null,
-	ellasticSprite: null,
+	gun: null,
+	power: null,
 
-	isPowerLoading: false,
 	hasFired: false,
 
 	preload: function(Phaser, game) {
 		game.load.image( "cannon-base", "assets/cannon-base.gif" );
 		game.load.image( "cannon-gun", "assets/cannon-gun.gif" );
-		game.load.image( "ellastic", "assets/ellastic.png" );
+		game.load.image( "power", "assets/ellastic.png" );
 	},
 
 	initGun: function(Phaser, game, position) {
@@ -9313,6 +9306,37 @@ Cannon.prototype = {
 		};
 	},
 
+	initPower: function(Phaser, game, position) {
+		var self = this,
+			sprite = game.add.sprite(
+				position.x,
+				position.y,
+				'power'
+			);
+
+		game.physics.enable( sprite, Phaser.Physics.ARCADE );
+		sprite.body.allowGravity = false;
+		sprite.height = 0;
+		sprite.width = 8;
+		sprite.alpha = 0;
+		sprite.anchor.setTo( 0.5, 0.0 );
+
+		// events
+		sprite.inputEnabled = true;
+		sprite.input.start( 0, true );
+		sprite.events.onInputDown.add(
+			$.proxy( self.onInputDown, self )
+		);
+		sprite.events.onInputUp.add(
+			$.proxy( self.onInputUp, self )
+		);
+
+		self.power = {
+			sprite: sprite,
+			dragging: false
+		};
+	},
+
 	update: function(state) {
 		var self = this;
 
@@ -9325,12 +9349,12 @@ Cannon.prototype = {
 
 	onInputDown: function() {
 		var self = this;
-		self.isPowerLoading = true;
+		self.power.dragging = true;
 	},
 
 	onInputUp: function() {
 		var self = this;
-		self.isPowerLoading = false;
+		self.power.dragging = false;
 	},
 
 	updateRotation: function(state) {
@@ -9339,36 +9363,60 @@ Cannon.prototype = {
 			gun = self.gun,
 			gunSprite = gun.sprite;
 
-		if ( self.isPowerLoading ) {
+		if ( self.power.dragging ) {
 			var newAngleRad =
 				game.physics.arcade.angleToPointer( gunSprite )- Math.PI,
 				beforeUpper = newAngleRad < gun.angleUpperBoundRad,
-				afterLower = newAngleRad > gun.angleLowerBoundRad;
+				afterLower = newAngleRad > gun.angleLowerBoundRad,
+				shouldRotate = true,
+				powerAngle;
 
 			if ( beforeUpper || afterLower ) {
 				if ( gun.isRotationStick ) {
-					return;
+					shouldRotate = false;
 				} else {
 					gun.isRotationStick = true;
 				}
 			}
 
-			if ( beforeUpper ) {
-				newAngleRad = gun.angleUpperBoundRad;
-			} else if ( afterLower ) {
-				newAngleRad = gun.angleLowerBoundRad;
-			} else {
-				gun.isRotationStick = false;
+			if ( shouldRotate ) {
+				if ( beforeUpper ) {
+					newAngleRad = gun.angleUpperBoundRad;
+				} else if ( afterLower ) {
+					newAngleRad = gun.angleLowerBoundRad;
+				} else {
+					gun.isRotationStick = false;
+				}
+				gunSprite.rotation = newAngleRad;
+				// optimization: power angle can be directly derrived
+				powerAngle = newAngleRad + Math.PI / 2;
 			}
 
-			gunSprite.rotation = newAngleRad;
+			self.updatePower( state, powerAngle );
 		}
+	},
+
+	updatePower: function(state, angle) {
+		var self = this,
+			game = state.game,
+			baseSprite = self.baseSprite,
+			sprite = self.power.sprite,
+			newHeight = game.physics.arcade.distanceToPointer( baseSprite );
+
+		sprite.alpha = 0.5;
+
+		if ( angle !== undefined ) {
+			sprite.rotation = angle;
+		}
+
+		sprite.height = ( newHeight < CONST.CANNON_POWER_HEIGTH_MAX ) ?
+			newHeight : CONST.CANNON_POWER_HEIGTH_MAX;
 	}
 
 };
 
 module.exports = Cannon;
-},{"jquery":1}],4:[function(require,module,exports){
+},{"./const":4,"jquery":1}],4:[function(require,module,exports){
 'use strict';
 
 module.exports = {
@@ -9378,7 +9426,9 @@ module.exports = {
 	SCREEN_SIZE_X: 900,
 	SCREEN_SIZE_Y: 675,
 
-	PLAYER_ACCELERATION: 20
+	PLAYER_ACCELERATION: 20,
+	CANNON_POWER_HEIGTH_MAX: 100,
+	CANNON_POWER_MULTIPLIER: 1
 
 };
 },{}],5:[function(require,module,exports){
