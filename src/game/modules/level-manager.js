@@ -132,15 +132,15 @@ LevelManager.prototype = {
 		state.player = player;
 
 		var indexInCannonsArray = 0;
-		self.createCannon( position, indexInCannonsArray );
+		self.createCannon( position, indexInCannonsArray, player );
 	},
 
-	createCannon: function(position, index) {
+	createCannon: function(position, index, player) {
 		var self = this,
 			state = self.state,
 			Phaser = state.Phaser,
 			game = state.game,
-			cannon = new Cannon( Phaser, game, position, index );
+			cannon = new Cannon( Phaser, game, position, index, player );
 
 		if ( index === undefined || index < 0 ) {
 			throw new Error( "Level is not valid - cannon object with .properties.index = " + index );

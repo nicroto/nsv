@@ -9228,7 +9228,7 @@ var CONST = require("./const");
 
 var $ = require("jquery");
 
-function Cannon(Phaser, game, position, index) {
+function Cannon(Phaser, game, position, index, player) {
 	var self = this;
 
 	self.position = position;
@@ -9259,6 +9259,10 @@ function Cannon(Phaser, game, position, index) {
 
 	// power
 	self.initPower( Phaser, game, position );
+
+	if ( player ) {
+		self.player = player;
+	}
 }
 
 Cannon.prototype = {
@@ -9270,7 +9274,8 @@ Cannon.prototype = {
 	gun: null,
 	power: null,
 
-	hasFired: false,
+	player: null,
+	timer: null,
 
 	preload: function(Phaser, game) {
 		game.load.image( "cannon-base", "assets/cannon-base.gif" );
@@ -9340,11 +9345,67 @@ Cannon.prototype = {
 	update: function(state) {
 		var self = this;
 
+		if ( self.player && !self.timer ) {
+			self.startCountDown( state );
+		}
+
 		self.updateRotation( state );
 	},
 
 	render: function() {
 
+	},
+
+	startCountDown: function(state) {
+		var self = this;
+
+		self.clearCountdown();
+
+		var game = state.game,
+			position = self.position,
+			baseSprite = self.baseSprite,
+			text = CONST.CANNON_SECONDS_BEFORE_SHOT + "",
+			style = { font: "15px Arial", fill: "#ffffff", align: "center" },
+			timer = {
+
+				secondsToShooting: CONST.CANNON_SECONDS_BEFORE_SHOT,
+
+				textVisual: game.add.text(
+					position.x + baseSprite.width / 2 + 10,
+					position.y - baseSprite.height / 2,
+					text,
+					style
+				),
+
+				interval: setInterval( function() {
+					timer.secondsToShooting -= 1;
+					timer.textVisual.setText( timer.secondsToShooting + "" );
+					if ( timer.secondsToShooting === 0 ) {
+						self.clearCountdown();
+						self.shoot();
+					}
+				}, 1000 )
+
+			};
+
+		self.timer = timer;
+	},
+
+	clearCountdown: function() {
+		var self = this,
+			timer = self.timer;
+
+		if ( timer ) {
+			clearInterval( timer.interval );
+			timer.textVisual.destroy();
+
+			self.timer = null;
+		}
+	},
+
+	shoot: function() {
+		// TODO:
+		console.log( "Shoot!" )
 	},
 
 	onInputDown: function() {
@@ -9365,7 +9426,7 @@ Cannon.prototype = {
 
 		if ( self.power.dragging ) {
 			var newAngleRad =
-				game.physics.arcade.angleToPointer( gunSprite )- Math.PI,
+					game.physics.arcade.angleToPointer( gunSprite ) - Math.PI,
 				beforeUpper = newAngleRad < gun.angleUpperBoundRad,
 				afterLower = newAngleRad > gun.angleLowerBoundRad,
 				shouldRotate = true,
@@ -9428,7 +9489,8 @@ module.exports = {
 
 	PLAYER_ACCELERATION: 20,
 	CANNON_POWER_HEIGTH_MAX: 100,
-	CANNON_POWER_MULTIPLIER: 1
+	CANNON_POWER_MULTIPLIER: 1,
+	CANNON_SECONDS_BEFORE_SHOT: 3
 
 };
 },{}],5:[function(require,module,exports){
@@ -9566,15 +9628,15 @@ LevelManager.prototype = {
 		state.player = player;
 
 		var indexInCannonsArray = 0;
-		self.createCannon( position, indexInCannonsArray );
+		self.createCannon( position, indexInCannonsArray, player );
 	},
 
-	createCannon: function(position, index) {
+	createCannon: function(position, index, player) {
 		var self = this,
 			state = self.state,
 			Phaser = state.Phaser,
 			game = state.game,
-			cannon = new Cannon( Phaser, game, position, index );
+			cannon = new Cannon( Phaser, game, position, index, player );
 
 		if ( index === undefined || index < 0 ) {
 			throw new Error( "Level is not valid - cannon object with .properties.index = " + index );
