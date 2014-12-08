@@ -9221,7 +9221,7 @@ state.game = new Phaser.Game(
 );
 
 } );
-},{"./modules/const":4,"./modules/level-manager":5,"./modules/state":7,"jquery":1}],3:[function(require,module,exports){
+},{"./modules/const":5,"./modules/level-manager":6,"./modules/state":8,"jquery":1}],3:[function(require,module,exports){
 'use strict';
 
 var CONST = require("./const");
@@ -9362,7 +9362,13 @@ Cannon.prototype = {
 		var self = this;
 
 		player.endFlight();
+		player.setPosition( self.position );
 		self.player = player;
+	},
+
+	detachFromPlayer: function() {
+		var self = this;
+		self.player = null;
 	},
 
 	startCountDown: function(state) {
@@ -9537,7 +9543,70 @@ Cannon.prototype = {
 };
 
 module.exports = Cannon;
-},{"./const":4,"jquery":1}],4:[function(require,module,exports){
+},{"./const":5,"jquery":1}],4:[function(require,module,exports){
+'use strict';
+
+function CollisionHandler() {}
+
+CollisionHandler.prototype = {
+
+	preload: function() {},
+
+	update: function(state) {
+		var self = this,
+			game = state.game,
+			player = state.player,
+			cannons = state.cannons,
+			selectedCannon = cannons[ state.selectedCannon ];
+
+		if ( player.isFlying ) {
+			if ( !player.leftCannonPremise ) {
+				var overlaps = game.physics.arcade.overlap(
+					player.sprite,
+					selectedCannon.baseSprite
+				);
+				if ( !overlaps ) {
+					player.leftCannonPremise = true;
+				} else {
+					return;
+				}
+			}
+
+			for ( var i = 0; i < cannons.length; i++ ) {
+				var cannon = cannons[i];
+
+				game.physics.arcade.overlap(
+					player.sprite,
+					cannon.baseSprite,
+					self.playerCannonCollision,
+					null,
+					{
+						state: state,
+						cannon: cannon
+					}
+				);
+			}
+		}
+	},
+
+	render: function() {},
+
+	playerCannonCollision: function() {
+		var context = this,
+			state = context.state,
+			player = state.player,
+			newCannon = context.cannon,
+			selectedCannon = state.cannons[ state.selectedCannon ];
+
+		selectedCannon.detachFromPlayer();
+		newCannon.loadPlayer( player );
+		state.selectedCannon = newCannon.index;
+	}
+
+};
+
+module.exports = CollisionHandler;
+},{}],5:[function(require,module,exports){
 'use strict';
 
 module.exports = {
@@ -9555,13 +9624,14 @@ module.exports = {
 	CANNON_SECONDS_BEFORE_SHOT: 6
 
 };
-},{}],5:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 'use strict';
 
 var utils = require("./utils"),
 	Player = require("./player"),
 	Cannon = require("./cannon"),
-	Target = require("./target");
+	Target = require("./target"),
+	CollisionHandler = require("./collision-handler");
 
 function LevelManager(state) {
 	var self = this;
@@ -9582,6 +9652,7 @@ LevelManager.prototype = {
 		Player.prototype.preload( Phaser, game );
 		Cannon.prototype.preload( Phaser, game );
 		Target.prototype.preload( Phaser, game );
+		CollisionHandler.prototype.preload( Phaser, game );
 
 		// preload level
 		game.load.tilemap( "tilemap", "assets/levels/tilemap.json", null, Phaser.Tilemap.TILED_JSON );
@@ -9604,6 +9675,8 @@ LevelManager.prototype = {
 		map.addTilesetImage('tile-set', 'tiles');
 		state.map = map;
 
+		state.collisionHandler = new CollisionHandler();
+
 		self.createLevel();
 
 		//  This resizes the game world to match the layer dimensions
@@ -9613,6 +9686,8 @@ LevelManager.prototype = {
 	update: function() {
 		var self = this,
 			state = self.state;
+
+		state.collisionHandler.update( state );
 
 		state.objects.forEach( function(element) {
 			element.update( state );
@@ -9745,7 +9820,7 @@ LevelManager.prototype = {
 };
 
 module.exports = LevelManager;
-},{"./cannon":3,"./player":6,"./target":8,"./utils":9}],6:[function(require,module,exports){
+},{"./cannon":3,"./collision-handler":4,"./player":7,"./target":9,"./utils":10}],7:[function(require,module,exports){
 'use strict';
 
 var CONST = require("./const");
@@ -9771,6 +9846,7 @@ Player.prototype = {
 	sprite: null,
 
 	isFlying: false,
+	leftCannonPremise: false,
 
 	preload: function(Phaser, game) {
 		game.load.image( "player", "assets/player.png" );
@@ -9787,6 +9863,7 @@ Player.prototype = {
 			sprite = self.sprite;
 
 		self.isFlying = true;
+		self.leftCannonPremise = false;
 		sprite.body.moves = true;
 
 		sprite.body.allowGravity = true;  
@@ -9806,12 +9883,23 @@ Player.prototype = {
 
 		self.isFlying = false;
 		sprite.body.moves = false;
+	},
+
+	setPosition: function(position) {
+		var self = this,
+			sprite = self.sprite;
+
+		sprite.x = position.x;
+		sprite.y = position.y;
+		sprite.angle = position.angle;
+
+		self.position = position;
 	}
 
 };
 
 module.exports = Player;
-},{"./const":4}],7:[function(require,module,exports){
+},{"./const":5}],8:[function(require,module,exports){
 'use strict';
 
 function State() {
@@ -9826,23 +9914,24 @@ State.prototype = {
 	Phaser: null,
 	game: null,
 
+	collisionHandler: null,
+
 	level: 1,
 	objects: null,
 	player: null,
 	cannons: null,
+	selectedCannon: 0,
 	target: null
 
 };
 
 module.exports = State;
-},{}],8:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 'use strict';
 
 function Target(Phaser, game, position) {
 	var self = this;
 
-	self.Phaser = Phaser;
-	self.game = game;
 	self.position = position;
 
 	var sprite = game.add.sprite( position.x, position.y, "target" );
@@ -9855,9 +9944,6 @@ function Target(Phaser, game, position) {
 }
 
 Target.prototype = {
-
-	Phaser: null,
-	game: null,
 
 	position: null,
 	sprite: null,
@@ -9873,7 +9959,7 @@ Target.prototype = {
 };
 
 module.exports = Target;
-},{}],9:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 'use strict';
 
 var utils = {

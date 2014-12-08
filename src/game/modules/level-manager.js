@@ -3,7 +3,8 @@
 var utils = require("./utils"),
 	Player = require("./player"),
 	Cannon = require("./cannon"),
-	Target = require("./target");
+	Target = require("./target"),
+	CollisionHandler = require("./collision-handler");
 
 function LevelManager(state) {
 	var self = this;
@@ -24,6 +25,7 @@ LevelManager.prototype = {
 		Player.prototype.preload( Phaser, game );
 		Cannon.prototype.preload( Phaser, game );
 		Target.prototype.preload( Phaser, game );
+		CollisionHandler.prototype.preload( Phaser, game );
 
 		// preload level
 		game.load.tilemap( "tilemap", "assets/levels/tilemap.json", null, Phaser.Tilemap.TILED_JSON );
@@ -46,6 +48,8 @@ LevelManager.prototype = {
 		map.addTilesetImage('tile-set', 'tiles');
 		state.map = map;
 
+		state.collisionHandler = new CollisionHandler();
+
 		self.createLevel();
 
 		//  This resizes the game world to match the layer dimensions
@@ -55,6 +59,8 @@ LevelManager.prototype = {
 	update: function() {
 		var self = this,
 			state = self.state;
+
+		state.collisionHandler.update( state );
 
 		state.objects.forEach( function(element) {
 			element.update( state );

@@ -138,7 +138,13 @@ Cannon.prototype = {
 		var self = this;
 
 		player.endFlight();
+		player.setPosition( self.position );
 		self.player = player;
+	},
+
+	detachFromPlayer: function() {
+		var self = this;
+		self.player = null;
 	},
 
 	startCountDown: function(state) {

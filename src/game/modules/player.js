@@ -23,6 +23,7 @@ Player.prototype = {
 	sprite: null,
 
 	isFlying: false,
+	leftCannonPremise: false,
 
 	preload: function(Phaser, game) {
 		game.load.image( "player", "assets/player.png" );
@@ -39,6 +40,7 @@ Player.prototype = {
 			sprite = self.sprite;
 
 		self.isFlying = true;
+		self.leftCannonPremise = false;
 		sprite.body.moves = true;
 
 		sprite.body.allowGravity = true;  
@@ -58,6 +60,17 @@ Player.prototype = {
 
 		self.isFlying = false;
 		sprite.body.moves = false;
+	},
+
+	setPosition: function(position) {
+		var self = this,
+			sprite = self.sprite;
+
+		sprite.x = position.x;
+		sprite.y = position.y;
+		sprite.angle = position.angle;
+
+		self.position = position;
 	}
 
 };
