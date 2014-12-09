@@ -9635,7 +9635,7 @@ CollisionHandler.prototype = {
 			player = state.player,
 			target = state.target;
 
-		if ( player.isFlying ) {
+		if ( player && player.isFlying ) {
 			if ( player.leftCannonPremise ) {
 				var collision = game.physics.arcade.overlap(
 					player.sprite,
@@ -9655,7 +9655,7 @@ CollisionHandler.prototype = {
 			cannons = state.cannons,
 			selectedCannon = cannons[ state.selectedCannon ];
 
-		if ( player.isFlying ) {
+		if ( player && player.isFlying ) {
 			if ( !player.leftCannonPremise ) {
 				var collision = game.physics.arcade.overlap(
 					player.sprite,
@@ -9699,16 +9699,19 @@ CollisionHandler.prototype = {
 
 	checkPlayerIsOutOfWorld: function(state) {
 		var game = state.game,
-			player = state.player,
-			sprite = player.sprite;
+			player = state.player;
 
-		if (
-			sprite.x < 0 ||
-			sprite.x > game.width ||
-			sprite.y < 0 ||
-			sprite.y > game.height
-		) {
-			player.die( state );
+		if ( player ) {
+			var sprite = player.sprite;
+
+			if (
+				sprite.x < 0 ||
+				sprite.x > game.width ||
+				sprite.y < 0 ||
+				sprite.y > game.height
+			) {
+				player.die( state );
+			}
 		}
 	}
 
@@ -9868,7 +9871,9 @@ LevelManager.prototype = {
 			state = self.state;
 
 		if ( state.gameOver ) {
-			// TODO:
+			var map = state.map;
+			map.createLayer( "game-over" );
+			self.recycleLevel();
 			state.gameOver = false;
 		} else if ( state.restartLevel ) {
 			self.restartLevel();
@@ -9899,6 +9904,22 @@ LevelManager.prototype = {
 	levelUp: function() {
 		var self = this,
 			state = this.state,
+			map = state.map;
+
+		self.recycleLevel();
+
+		if ( state.level < CONST.LEVELS_COUNT ) {
+			state.level += 1;
+			self.createLevel();
+		} else {
+			map.createLayer( "win" );
+			self.recycleLevel();
+		}
+	},
+
+	recycleLevel: function() {
+		var self = this,
+			state = self.state,
 			objects = state.objects;
 
 		objects.forEach( function(object) {
@@ -9910,13 +9931,6 @@ LevelManager.prototype = {
 		state.cannons = [];
 		state.target = null;
 		state.selectedCannon = 0;
-
-		if ( state.level < CONST.LEVELS_COUNT ) {
-			state.level += 1;
-			self.createLevel();
-		} else {
-			// TODO:
-		}
 	},
 
 	restartLevel: function() {

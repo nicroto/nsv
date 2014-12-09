@@ -20,7 +20,7 @@ CollisionHandler.prototype = {
 			player = state.player,
 			target = state.target;
 
-		if ( player.isFlying ) {
+		if ( player && player.isFlying ) {
 			if ( player.leftCannonPremise ) {
 				var collision = game.physics.arcade.overlap(
 					player.sprite,
@@ -40,7 +40,7 @@ CollisionHandler.prototype = {
 			cannons = state.cannons,
 			selectedCannon = cannons[ state.selectedCannon ];
 
-		if ( player.isFlying ) {
+		if ( player && player.isFlying ) {
 			if ( !player.leftCannonPremise ) {
 				var collision = game.physics.arcade.overlap(
 					player.sprite,
@@ -84,16 +84,19 @@ CollisionHandler.prototype = {
 
 	checkPlayerIsOutOfWorld: function(state) {
 		var game = state.game,
-			player = state.player,
-			sprite = player.sprite;
+			player = state.player;
 
-		if (
-			sprite.x < 0 ||
-			sprite.x > game.width ||
-			sprite.y < 0 ||
-			sprite.y > game.height
-		) {
-			player.die( state );
+		if ( player ) {
+			var sprite = player.sprite;
+
+			if (
+				sprite.x < 0 ||
+				sprite.x > game.width ||
+				sprite.y < 0 ||
+				sprite.y > game.height
+			) {
+				player.die( state );
+			}
 		}
 	}
 

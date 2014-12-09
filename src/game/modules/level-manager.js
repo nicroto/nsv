@@ -64,7 +64,9 @@ LevelManager.prototype = {
 			state = self.state;
 
 		if ( state.gameOver ) {
-			// TODO:
+			var map = state.map;
+			map.createLayer( "game-over" );
+			self.recycleLevel();
 			state.gameOver = false;
 		} else if ( state.restartLevel ) {
 			self.restartLevel();
@@ -95,6 +97,22 @@ LevelManager.prototype = {
 	levelUp: function() {
 		var self = this,
 			state = this.state,
+			map = state.map;
+
+		self.recycleLevel();
+
+		if ( state.level < CONST.LEVELS_COUNT ) {
+			state.level += 1;
+			self.createLevel();
+		} else {
+			map.createLayer( "win" );
+			self.recycleLevel();
+		}
+	},
+
+	recycleLevel: function() {
+		var self = this,
+			state = self.state,
 			objects = state.objects;
 
 		objects.forEach( function(object) {
@@ -106,13 +124,6 @@ LevelManager.prototype = {
 		state.cannons = [];
 		state.target = null;
 		state.selectedCannon = 0;
-
-		if ( state.level < CONST.LEVELS_COUNT ) {
-			state.level += 1;
-			self.createLevel();
-		} else {
-			// TODO:
-		}
 	},
 
 	restartLevel: function() {
