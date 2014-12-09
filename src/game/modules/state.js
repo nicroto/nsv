@@ -1,7 +1,11 @@
 'use strict';
 
+var CONST = require("./const");
+
 function State() {
 	var self = this;
+
+	self.livesLeft = CONST.PLAYER_INITIAL_LIVES_COUNT;
 
 	self.objects = [];
 	self.cannons = [];
@@ -12,8 +16,9 @@ State.prototype = {
 	Phaser: null,
 	game: null,
 
-	level: 1,
 	map: null,
+	level: 1,
+	livesLeft: 0,
 
 	collisionHandler: null,
 
