@@ -5,6 +5,7 @@ var CONST = require("./const"),
 	Player = require("./player"),
 	Cannon = require("./cannon"),
 	Target = require("./target"),
+	Countdown = require("./countdown"),
 	CollisionHandler = require("./collision-handler");
 
 function LevelManager(state) {
@@ -26,6 +27,7 @@ LevelManager.prototype = {
 		Player.prototype.preload( Phaser, game );
 		Cannon.prototype.preload( Phaser, game );
 		Target.prototype.preload( Phaser, game );
+		Countdown.prototype.preload( Phaser, game );
 		CollisionHandler.prototype.preload( Phaser, game );
 
 		// preload level
@@ -168,6 +170,15 @@ LevelManager.prototype = {
 					}
 					self.createCannon( position, index );
 					break;
+				case "time":
+					var durationInSeconds;
+					try {
+						durationInSeconds = JSON.parse( customProps.time );
+					} catch(exception) {
+						throw new Error( "Error: can't parse cannonObject.properties.time: " + exception.message );
+					}
+					self.createCountdown( customProps.time );
+					break;
 				case "target":
 					self.createTarget( position );
 					break;
@@ -177,6 +188,7 @@ LevelManager.prototype = {
 		} );
 
 		self.verifyLevelIsLoadedCorrectly();
+		state.countdown.start();
 	},
 
 	createStartPoint: function(position) {
@@ -220,12 +232,24 @@ LevelManager.prototype = {
 		state.target = target;
 	},
 
+	createCountdown: function(duration) {
+		var self = this,
+			state = self.state,
+			Phaser = state.Phaser,
+			game = state.game,
+			countdown = new Countdown( Phaser, game, duration );
+
+		state.countdown = countdown;
+		state.objects.push( countdown );
+	},
+
 	verifyLevelIsLoadedCorrectly: function() {
 		var self = this,
 			state = self.state,
 			player = state.player,
 			cannons = state.cannons,
-			target = state.target;
+			target = state.target,
+			countdown = state.countdown;
 
 		if ( !player ) {
 			throw new Error( "Level is not loaded correctly - no player!" );
@@ -235,6 +259,9 @@ LevelManager.prototype = {
 		}
 		if ( !cannons || !cannons.length ) {
 			throw new Error( "Level is not loaded correctly - no cannons!" );
+		}
+		if ( !countdown ) {
+			throw new Error( "Level is not loaded correctly - no time object!" );
 		}
 
 		for ( var i = 0; i < cannons.length; i++ ) {

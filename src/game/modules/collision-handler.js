@@ -93,13 +93,7 @@ CollisionHandler.prototype = {
 			sprite.y < 0 ||
 			sprite.y > game.height
 		) {
-			var hasMoreLives = player.die( state );
-
-			if ( !hasMoreLives ) {
-				state.gameOver = true;
-			} else {
-				state.restartLevel = true;
-			}
+			player.die( state );
 		}
 	}
 

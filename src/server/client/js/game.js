@@ -9221,7 +9221,7 @@ state.game = new Phaser.Game(
 );
 
 } );
-},{"./modules/const":5,"./modules/level-manager":6,"./modules/state":8,"jquery":1}],3:[function(require,module,exports){
+},{"./modules/const":5,"./modules/level-manager":7,"./modules/state":9,"jquery":1}],3:[function(require,module,exports){
 'use strict';
 
 var CONST = require("./const");
@@ -9708,13 +9708,7 @@ CollisionHandler.prototype = {
 			sprite.y < 0 ||
 			sprite.y > game.height
 		) {
-			var hasMoreLives = player.die( state );
-
-			if ( !hasMoreLives ) {
-				state.gameOver = true;
-			} else {
-				state.restartLevel = true;
-			}
+			player.die( state );
 		}
 	}
 
@@ -9745,11 +9739,77 @@ module.exports = {
 },{}],6:[function(require,module,exports){
 'use strict';
 
+function Countdown(Phaser, game, seconds) {
+	var self = this,
+		style = { font: "30px Arial", fill: "#ff0000", align: "center" };
+
+	self.duration = seconds;
+
+	var textVisual = game.add.text(
+		game.width - 100,
+		game.height - 70,
+		seconds + "",
+		style
+	);
+	self.textVisual = textVisual;
+}
+
+Countdown.prototype = {
+
+	duration: 0,
+	timeStarted: null,
+	textVisual: null,
+
+	preload: function(Phaser, game) {
+		game.load.image( "target", "assets/princess.png" );
+	},
+
+	update: function(state) {
+		var self = this,
+			duration = self.duration,
+			textVisual = self.textVisual,
+			elapsedSeconds =
+				Math.ceil( ( ( new Date() ) - self.timeStarted ) / 1000 );
+
+		if ( elapsedSeconds >= duration ) {
+			state.player.die( state );
+		}
+
+		textVisual.setText( duration - elapsedSeconds );
+	},
+
+	render: function() {},
+
+	start: function() {
+		var self = this;
+
+		self.timeStarted = new Date();
+	},
+
+	reset: function() {
+		var self = this;
+
+		self.timeStarted = new Date();
+	},
+
+	recycle: function() {
+		var self = this;
+
+		self.textVisual.destroy();
+	}
+
+};
+
+module.exports = Countdown;
+},{}],7:[function(require,module,exports){
+'use strict';
+
 var CONST = require("./const"),
 	utils = require("./utils"),
 	Player = require("./player"),
 	Cannon = require("./cannon"),
 	Target = require("./target"),
+	Countdown = require("./countdown"),
 	CollisionHandler = require("./collision-handler");
 
 function LevelManager(state) {
@@ -9771,6 +9831,7 @@ LevelManager.prototype = {
 		Player.prototype.preload( Phaser, game );
 		Cannon.prototype.preload( Phaser, game );
 		Target.prototype.preload( Phaser, game );
+		Countdown.prototype.preload( Phaser, game );
 		CollisionHandler.prototype.preload( Phaser, game );
 
 		// preload level
@@ -9913,6 +9974,15 @@ LevelManager.prototype = {
 					}
 					self.createCannon( position, index );
 					break;
+				case "time":
+					var durationInSeconds;
+					try {
+						durationInSeconds = JSON.parse( customProps.time );
+					} catch(exception) {
+						throw new Error( "Error: can't parse cannonObject.properties.time: " + exception.message );
+					}
+					self.createCountdown( customProps.time );
+					break;
 				case "target":
 					self.createTarget( position );
 					break;
@@ -9922,6 +9992,7 @@ LevelManager.prototype = {
 		} );
 
 		self.verifyLevelIsLoadedCorrectly();
+		state.countdown.start();
 	},
 
 	createStartPoint: function(position) {
@@ -9965,12 +10036,24 @@ LevelManager.prototype = {
 		state.target = target;
 	},
 
+	createCountdown: function(duration) {
+		var self = this,
+			state = self.state,
+			Phaser = state.Phaser,
+			game = state.game,
+			countdown = new Countdown( Phaser, game, duration );
+
+		state.countdown = countdown;
+		state.objects.push( countdown );
+	},
+
 	verifyLevelIsLoadedCorrectly: function() {
 		var self = this,
 			state = self.state,
 			player = state.player,
 			cannons = state.cannons,
-			target = state.target;
+			target = state.target,
+			countdown = state.countdown;
 
 		if ( !player ) {
 			throw new Error( "Level is not loaded correctly - no player!" );
@@ -9980,6 +10063,9 @@ LevelManager.prototype = {
 		}
 		if ( !cannons || !cannons.length ) {
 			throw new Error( "Level is not loaded correctly - no cannons!" );
+		}
+		if ( !countdown ) {
+			throw new Error( "Level is not loaded correctly - no time object!" );
 		}
 
 		for ( var i = 0; i < cannons.length; i++ ) {
@@ -9992,7 +10078,7 @@ LevelManager.prototype = {
 };
 
 module.exports = LevelManager;
-},{"./cannon":3,"./collision-handler":4,"./const":5,"./player":7,"./target":9,"./utils":10}],7:[function(require,module,exports){
+},{"./cannon":3,"./collision-handler":4,"./const":5,"./countdown":6,"./player":8,"./target":10,"./utils":11}],8:[function(require,module,exports){
 'use strict';
 
 var CONST = require("./const");
@@ -10086,10 +10172,15 @@ Player.prototype = {
 
 	die: function(state) {
 		var self = this;
+
 		state.livesLeft -= 1;
 		self.livesTextVisual.setText( "Lives: " + state.livesLeft );
 
-		return state.livesLeft > 0;
+		if ( state.livesLeft > 0 ) {
+			state.restartLevel = true;
+		} else {
+			state.gameOver = true;
+		}
 	},
 
 	reset: function() {
@@ -10109,7 +10200,7 @@ Player.prototype = {
 };
 
 module.exports = Player;
-},{"./const":5}],8:[function(require,module,exports){
+},{"./const":5}],9:[function(require,module,exports){
 'use strict';
 
 var CONST = require("./const");
@@ -10133,6 +10224,7 @@ State.prototype = {
 	livesLeft: 0,
 
 	collisionHandler: null,
+	countdown: null,
 
 	gameOver: false,
 	restartLevel: false,
@@ -10146,7 +10238,7 @@ State.prototype = {
 };
 
 module.exports = State;
-},{"./const":5}],9:[function(require,module,exports){
+},{"./const":5}],10:[function(require,module,exports){
 'use strict';
 
 function Target(Phaser, game, position) {
@@ -10189,7 +10281,7 @@ Target.prototype = {
 };
 
 module.exports = Target;
-},{}],10:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 'use strict';
 
 var utils = {

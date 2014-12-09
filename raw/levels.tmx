@@ -56,7 +56,12 @@
     <property name="index" value="4"/>
    </properties>
   </object>
-  <object name="target" x="75" y="49.5" width="50" height="50"/>
+  <object name="target" x="74" y="48.1554" width="50" height="50"/>
+  <object name="time" x="62.4008" y="567.981" width="50" height="50">
+   <properties>
+    <property name="time" value="35"/>
+   </properties>
+  </object>
  </objectgroup>
  <layer name="2-background" width="36" height="27">
   <data encoding="csv">
@@ -117,5 +122,10 @@
    </properties>
   </object>
   <object name="target" x="124.943" y="48.576" width="50" height="50"/>
+  <object name="time" x="58.3669" y="562.603" width="50" height="50">
+   <properties>
+    <property name="time" value="45"/>
+   </properties>
+  </object>
  </objectgroup>
 </map>

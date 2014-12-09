@@ -91,10 +91,15 @@ Player.prototype = {
 
 	die: function(state) {
 		var self = this;
+
 		state.livesLeft -= 1;
 		self.livesTextVisual.setText( "Lives: " + state.livesLeft );
 
-		return state.livesLeft > 0;
+		if ( state.livesLeft > 0 ) {
+			state.restartLevel = true;
+		} else {
+			state.gameOver = true;
+		}
 	},
 
 	reset: function() {

@@ -21,6 +21,7 @@ State.prototype = {
 	livesLeft: 0,
 
 	collisionHandler: null,
+	countdown: null,
 
 	gameOver: false,
 	restartLevel: false,
