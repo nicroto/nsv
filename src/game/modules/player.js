@@ -2,7 +2,7 @@
 
 var CONST = require("./const");
 
-function Player(Phaser, game, position, livesLeft) {
+function Player(Phaser, game, position, state) {
 	var self = this;
 
 	self.position = position;
@@ -15,15 +15,21 @@ function Player(Phaser, game, position, livesLeft) {
 	sprite.anchor.setTo( 0.5, 0.95 );
 	self.sprite = sprite;
 
-	var text = "Lives: " + livesLeft,
-		style = { font: "30px Arial", fill: "#ffffff", align: "center" },
+	var style = { font: "30px Arial", fill: "#ffffff", align: "center" },
 		livesTextVisual = game.add.text(
 			game.width - 150,
 			32,
-			text,
+			"Lives: " + state.livesLeft,
+			style
+		),
+		levelTextVisual = game.add.text(
+			40,
+			game.height - 70,
+			"Level: " + state.level,
 			style
 		);
 	self.livesTextVisual = livesTextVisual;
+	self.levelTextVisual = levelTextVisual;
 }
 
 Player.prototype = {
@@ -102,6 +108,7 @@ Player.prototype = {
 
 		self.sprite.kill();
 		self.livesTextVisual.destroy();
+		self.levelTextVisual.destroy();
 	}
 
 };

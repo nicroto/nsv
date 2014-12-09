@@ -184,7 +184,7 @@ LevelManager.prototype = {
 			state = self.state,
 			Phaser = state.Phaser,
 			game = state.game,
-			player = new Player( Phaser, game, position, state.livesLeft );
+			player = new Player( Phaser, game, position, state );
 
 		state.objects.push( player );
 
