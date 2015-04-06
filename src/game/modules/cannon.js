@@ -19,8 +19,9 @@ function Cannon(Phaser, game, position, index, player) {
 		position.y,
 		"cannon-base"
 	);
-	game.physics.enable( baseSprite, Phaser.Physics.ARCADE );
-	baseSprite.body.allowGravity = false;
+	game.physics.enable( baseSprite, Phaser.Physics.P2JS );
+	baseSprite.body.data.gravityScale = 0;
+	baseSprite.body.angle = position.angle;
 	baseSprite.anchor.setTo( 0.5 );
 
 	// events
@@ -72,9 +73,9 @@ Cannon.prototype = {
 		var self = this,
 			baseSprite = self.baseSprite;
 
-		baseSprite.x = position.x;
-		baseSprite.y = position.y;
-		baseSprite.angle = position.angle;
+		baseSprite.body.x = position.x;
+		baseSprite.body.y = position.y;
+		baseSprite.body.angle = position.angle;
 	},
 
 	initGun: function(position) {
@@ -171,7 +172,9 @@ Cannon.prototype = {
 	update: function(state) {
 		var self = this,
 			player = self.player,
-			timer = self.timer;
+			timer = self.timer,
+			baseSprite = self.baseSprite,
+			position = self.position;
 
 		if ( player && !timer && !player.isFlying ) {
 			self.startCountDown( state );
@@ -341,7 +344,7 @@ Cannon.prototype = {
 
 				gunSprite.rotation = newAngleRad;
 				if ( self.player ) {
-					self.player.sprite.rotation = verticalItemsAngle;
+					self.player.sprite.body.rotation = verticalItemsAngle;
 				}
 			}
 

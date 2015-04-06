@@ -2,6 +2,7 @@
 
 var CONST = require("./const"),
 	utils = require("./utils"),
+	Walls = require("./walls"),
 	Player = require("./player"),
 	Cannon = require("./cannon"),
 	Target = require("./target"),
@@ -45,7 +46,8 @@ LevelManager.prototype = {
 		game.renderer.clearBeforeRender = false;
 		game.renderer.roundPixels = true;
 
-		game.physics.startSystem( Phaser.Physics.ARCADE );
+		game.physics.startSystem( Phaser.Physics.P2JS );
+		game.physics.p2.gravity.y = 100;
 
 		var map = game.add.tilemap( 'tilemap' );
 		map.addTilesetImage('tile-set', 'tiles');
@@ -133,11 +135,9 @@ LevelManager.prototype = {
 			cannons = state.cannons,
 			selectedCannon = cannons[ state.selectedCannon ];
 
-		if ( state.selectedCannon !== 0 ) {
-			selectedCannon.detachFromPlayer();
-			cannons[0].loadPlayer( player );
-			state.selectedCannon = 0;
-		}
+		selectedCannon.detachFromPlayer();
+		cannons[0].loadPlayer( player );
+		state.selectedCannon = 0;
 
 		objects.forEach( function(object) {
 			object.reset();
@@ -171,6 +171,9 @@ LevelManager.prototype = {
 			switch( element.name ) {
 				case "start":
 					self.createStartPoint( position );
+					break;
+				case "wall":
+					self.createWall( element );
 					break;
 				case "cannon":
 					var index;
@@ -215,6 +218,29 @@ LevelManager.prototype = {
 
 		var indexInCannonsArray = 0;
 		self.createCannon( position, indexInCannonsArray, player );
+	},
+
+	createWall: function(element) {
+		var self = this,
+			state = self.state,
+			walls = state.walls;
+
+		if (
+			element.x != null,
+			element.x >= 0,
+			element.y != null,
+			element.y >= 0,
+			element.width >= 0,
+			element.height >= 0
+		) {
+			throw new Error( "Level is not valid - wall object with incorrect data: " + JSON.stringify( element ) );
+		}
+
+		if ( !walls ) {
+			state.walls = walls = new Walls( Phaser, game );
+		}
+
+		walls.add( element );
 	},
 
 	createCannon: function(position, index, player) {

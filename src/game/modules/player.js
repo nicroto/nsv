@@ -5,12 +5,20 @@ var CONST = require("./const");
 function Player(Phaser, game, position, state) {
 	var self = this;
 
+	self.Phaser = Phaser;
+	self.game = game;
+
 	self.position = position;
 
 	var sprite = game.add.sprite( position.x, position.y, "player" );
-	game.physics.enable( sprite, Phaser.Physics.ARCADE );
+
+	// physics
+	game.physics.enable( sprite, Phaser.Physics.P2JS );
+	sprite.body.clearShapes();
+	sprite.body.loadPolygon('playerPhysics', 'player');
 	sprite.body.collideWorldBounds = false;
-	sprite.body.moves = false;
+	sprite.body.data.gravityScale = 0;
+
 	sprite.angle = position.angle;
 	sprite.anchor.setTo( 0.5, 0.95 );
 	self.sprite = sprite;
@@ -34,6 +42,9 @@ function Player(Phaser, game, position, state) {
 
 Player.prototype = {
 
+	Phaser: null,
+	game: null,
+
 	position: null,
 	sprite: null,
 	livesTextVisual: null,
@@ -43,11 +54,10 @@ Player.prototype = {
 
 	preload: function(Phaser, game) {
 		game.load.image( "player", "assets/player.png" );
+		game.load.physics( "playerPhysics", "assets/player-physics.json" );
 	},
 
-	update: function() {
-
-	},
+	update: function() {},
 
 	render: function() {},
 
@@ -57,17 +67,10 @@ Player.prototype = {
 
 		self.isFlying = true;
 		self.leftCannonPremise = false;
-		sprite.body.moves = true;
 
-		sprite.body.allowGravity = true;  
-		sprite.body.gravity.setTo(
-			CONST.PLAYER_GRAVITY_X,
-			CONST.PLAYER_GRAVITY_Y
-		);
-		sprite.body.velocity.setTo(
-			velocityVecotr.x,
-			velocityVecotr.y
-		);
+		sprite.body.data.gravityScale = 1;
+		sprite.body.velocity.x = velocityVecotr.x;
+		sprite.body.velocity.y = velocityVecotr.y;
 	},
 
 	endFlight: function() {
@@ -75,16 +78,19 @@ Player.prototype = {
 			sprite = self.sprite;
 
 		self.isFlying = false;
-		sprite.body.moves = false;
+
+		sprite.body.data.gravityScale = 0;
+		sprite.body.velocity.x = 0;
+		sprite.body.velocity.y = 0;
 	},
 
 	setPosition: function(position) {
 		var self = this,
 			sprite = self.sprite;
 
-		sprite.x = position.x;
-		sprite.y = position.y;
-		sprite.angle = position.angle;
+		sprite.body.x = position.x;
+		sprite.body.y = position.y;
+		sprite.body.angle = position.angle;
 
 		self.position = position;
 	},

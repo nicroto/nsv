@@ -9243,8 +9243,9 @@ function Cannon(Phaser, game, position, index, player) {
 		position.y,
 		"cannon-base"
 	);
-	game.physics.enable( baseSprite, Phaser.Physics.ARCADE );
-	baseSprite.body.allowGravity = false;
+	game.physics.enable( baseSprite, Phaser.Physics.P2JS );
+	baseSprite.body.data.gravityScale = 0;
+	baseSprite.body.angle = position.angle;
 	baseSprite.anchor.setTo( 0.5 );
 
 	// events
@@ -9296,9 +9297,9 @@ Cannon.prototype = {
 		var self = this,
 			baseSprite = self.baseSprite;
 
-		baseSprite.x = position.x;
-		baseSprite.y = position.y;
-		baseSprite.angle = position.angle;
+		baseSprite.body.x = position.x;
+		baseSprite.body.y = position.y;
+		baseSprite.body.angle = position.angle;
 	},
 
 	initGun: function(position) {
@@ -9395,7 +9396,9 @@ Cannon.prototype = {
 	update: function(state) {
 		var self = this,
 			player = self.player,
-			timer = self.timer;
+			timer = self.timer,
+			baseSprite = self.baseSprite,
+			position = self.position;
 
 		if ( player && !timer && !player.isFlying ) {
 			self.startCountDown( state );
@@ -9565,7 +9568,7 @@ Cannon.prototype = {
 
 				gunSprite.rotation = newAngleRad;
 				if ( self.player ) {
-					self.player.sprite.rotation = verticalItemsAngle;
+					self.player.sprite.body.rotation = verticalItemsAngle;
 				}
 			}
 
@@ -9624,6 +9627,7 @@ CollisionHandler.prototype = {
 	update: function(state) {
 		var self = this;
 		self.checkPlayerTargetCollision( state );
+		// self.checkPlayerWallCollision( state );
 		self.checkPlayerCannonCollisions( state );
 		self.checkPlayerIsOutOfWorld( state );
 	},
@@ -9643,6 +9647,24 @@ CollisionHandler.prototype = {
 				);
 				if ( collision ) {
 					state.levelUp = true;
+				}
+			}
+		}
+	},
+
+	checkPlayerWallCollision: function(state) {
+		var game = state.game,
+			player = state.player,
+			walls = state.walls;
+
+		if ( player && player.isFlying ) {
+			for ( var i = 0; i < walls.length; i++ ) {
+				var collision = game.physics.arcade.overlap(
+					player.sprite,
+					walls[i]
+				);
+				if ( collision ) {
+					// TODO
 				}
 			}
 		}
@@ -9705,10 +9727,10 @@ CollisionHandler.prototype = {
 			var sprite = player.sprite;
 
 			if (
-				sprite.x < 0 ||
-				sprite.x > game.width ||
-				sprite.y < 0 ||
-				sprite.y > game.height
+				sprite.body.x < 0 ||
+				sprite.body.x > game.width ||
+				sprite.body.y < 0 ||
+				sprite.body.y > game.height
 			) {
 				player.die( state );
 			}
@@ -9809,6 +9831,7 @@ module.exports = Countdown;
 
 var CONST = require("./const"),
 	utils = require("./utils"),
+	Walls = require("./walls"),
 	Player = require("./player"),
 	Cannon = require("./cannon"),
 	Target = require("./target"),
@@ -9852,7 +9875,8 @@ LevelManager.prototype = {
 		game.renderer.clearBeforeRender = false;
 		game.renderer.roundPixels = true;
 
-		game.physics.startSystem( Phaser.Physics.ARCADE );
+		game.physics.startSystem( Phaser.Physics.P2JS );
+		game.physics.p2.gravity.y = 100;
 
 		var map = game.add.tilemap( 'tilemap' );
 		map.addTilesetImage('tile-set', 'tiles');
@@ -9940,11 +9964,9 @@ LevelManager.prototype = {
 			cannons = state.cannons,
 			selectedCannon = cannons[ state.selectedCannon ];
 
-		if ( state.selectedCannon !== 0 ) {
-			selectedCannon.detachFromPlayer();
-			cannons[0].loadPlayer( player );
-			state.selectedCannon = 0;
-		}
+		selectedCannon.detachFromPlayer();
+		cannons[0].loadPlayer( player );
+		state.selectedCannon = 0;
 
 		objects.forEach( function(object) {
 			object.reset();
@@ -9978,6 +10000,9 @@ LevelManager.prototype = {
 			switch( element.name ) {
 				case "start":
 					self.createStartPoint( position );
+					break;
+				case "wall":
+					self.createWall( element );
 					break;
 				case "cannon":
 					var index;
@@ -10022,6 +10047,29 @@ LevelManager.prototype = {
 
 		var indexInCannonsArray = 0;
 		self.createCannon( position, indexInCannonsArray, player );
+	},
+
+	createWall: function(element) {
+		var self = this,
+			state = self.state,
+			walls = state.walls;
+
+		if (
+			element.x != null,
+			element.x >= 0,
+			element.y != null,
+			element.y >= 0,
+			element.width >= 0,
+			element.height >= 0
+		) {
+			throw new Error( "Level is not valid - wall object with incorrect data: " + JSON.stringify( element ) );
+		}
+
+		if ( !walls ) {
+			state.walls = walls = new Walls( Phaser, game );
+		}
+
+		walls.add( element );
 	},
 
 	createCannon: function(position, index, player) {
@@ -10092,7 +10140,7 @@ LevelManager.prototype = {
 };
 
 module.exports = LevelManager;
-},{"./cannon":3,"./collision-handler":4,"./const":5,"./countdown":6,"./player":8,"./target":10,"./utils":11}],8:[function(require,module,exports){
+},{"./cannon":3,"./collision-handler":4,"./const":5,"./countdown":6,"./player":8,"./target":10,"./utils":11,"./walls":12}],8:[function(require,module,exports){
 'use strict';
 
 var CONST = require("./const");
@@ -10100,12 +10148,20 @@ var CONST = require("./const");
 function Player(Phaser, game, position, state) {
 	var self = this;
 
+	self.Phaser = Phaser;
+	self.game = game;
+
 	self.position = position;
 
 	var sprite = game.add.sprite( position.x, position.y, "player" );
-	game.physics.enable( sprite, Phaser.Physics.ARCADE );
+
+	// physics
+	game.physics.enable( sprite, Phaser.Physics.P2JS );
+	sprite.body.clearShapes();
+	sprite.body.loadPolygon('playerPhysics', 'player');
 	sprite.body.collideWorldBounds = false;
-	sprite.body.moves = false;
+	sprite.body.data.gravityScale = 0;
+
 	sprite.angle = position.angle;
 	sprite.anchor.setTo( 0.5, 0.95 );
 	self.sprite = sprite;
@@ -10129,6 +10185,9 @@ function Player(Phaser, game, position, state) {
 
 Player.prototype = {
 
+	Phaser: null,
+	game: null,
+
 	position: null,
 	sprite: null,
 	livesTextVisual: null,
@@ -10138,11 +10197,10 @@ Player.prototype = {
 
 	preload: function(Phaser, game) {
 		game.load.image( "player", "assets/player.png" );
+		game.load.physics( "playerPhysics", "assets/player-physics.json" );
 	},
 
-	update: function() {
-
-	},
+	update: function() {},
 
 	render: function() {},
 
@@ -10152,17 +10210,10 @@ Player.prototype = {
 
 		self.isFlying = true;
 		self.leftCannonPremise = false;
-		sprite.body.moves = true;
 
-		sprite.body.allowGravity = true;  
-		sprite.body.gravity.setTo(
-			CONST.PLAYER_GRAVITY_X,
-			CONST.PLAYER_GRAVITY_Y
-		);
-		sprite.body.velocity.setTo(
-			velocityVecotr.x,
-			velocityVecotr.y
-		);
+		sprite.body.data.gravityScale = 1;
+		sprite.body.velocity.x = velocityVecotr.x;
+		sprite.body.velocity.y = velocityVecotr.y;
 	},
 
 	endFlight: function() {
@@ -10170,16 +10221,19 @@ Player.prototype = {
 			sprite = self.sprite;
 
 		self.isFlying = false;
-		sprite.body.moves = false;
+
+		sprite.body.data.gravityScale = 0;
+		sprite.body.velocity.x = 0;
+		sprite.body.velocity.y = 0;
 	},
 
 	setPosition: function(position) {
 		var self = this,
 			sprite = self.sprite;
 
-		sprite.x = position.x;
-		sprite.y = position.y;
-		sprite.angle = position.angle;
+		sprite.body.x = position.x;
+		sprite.body.y = position.y;
+		sprite.body.angle = position.angle;
 
 		self.position = position;
 	},
@@ -10244,6 +10298,7 @@ State.prototype = {
 	restartLevel: false,
 	levelUp: false,
 	objects: null,
+	walls: null,
 	player: null,
 	cannons: null,
 	selectedCannon: 0,
@@ -10316,4 +10371,31 @@ var utils = {
 };
 
 module.exports = utils;
+},{}],12:[function(require,module,exports){
+'use strict';
+
+function Walls(Phaser, game) {
+	var self = this;
+
+	self.sprites = [];
+}
+
+Walls.prototype = {
+
+	Phaser: null,
+	game: null,
+
+	sprites: null,
+
+	add: function(rect) {
+		var self = this,
+			game = self.game,
+			sprite = game.add.sprite( rect.x, rect.y, null );
+
+		sprite.body.setSize( rect.width, rect.height, 0, 0 );
+
+		self.sprites.push( sprite );
+	}
+
+};
 },{}]},{},[2]);

@@ -9,6 +9,7 @@ CollisionHandler.prototype = {
 	update: function(state) {
 		var self = this;
 		self.checkPlayerTargetCollision( state );
+		// self.checkPlayerWallCollision( state );
 		self.checkPlayerCannonCollisions( state );
 		self.checkPlayerIsOutOfWorld( state );
 	},
@@ -28,6 +29,24 @@ CollisionHandler.prototype = {
 				);
 				if ( collision ) {
 					state.levelUp = true;
+				}
+			}
+		}
+	},
+
+	checkPlayerWallCollision: function(state) {
+		var game = state.game,
+			player = state.player,
+			walls = state.walls;
+
+		if ( player && player.isFlying ) {
+			for ( var i = 0; i < walls.length; i++ ) {
+				var collision = game.physics.arcade.overlap(
+					player.sprite,
+					walls[i]
+				);
+				if ( collision ) {
+					// TODO
 				}
 			}
 		}
@@ -90,10 +109,10 @@ CollisionHandler.prototype = {
 			var sprite = player.sprite;
 
 			if (
-				sprite.x < 0 ||
-				sprite.x > game.width ||
-				sprite.y < 0 ||
-				sprite.y > game.height
+				sprite.body.x < 0 ||
+				sprite.body.x > game.width ||
+				sprite.body.y < 0 ||
+				sprite.body.y > game.height
 			) {
 				player.die( state );
 			}
